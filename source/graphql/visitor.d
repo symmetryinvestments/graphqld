@@ -3,9 +3,9 @@ module graphql.visitor;
 import graphql.ast;
 import graphql.tokenmodule;
 
-@safe:
-
 class Visitor : ConstVisitor {
+@safe :
+
 	alias accept = ConstVisitor.accept;
 
 	alias enter = ConstVisitor.enter;
@@ -529,6 +529,9 @@ class Visitor : ConstVisitor {
 			case ValueEnum.E:
 				obj.tok.visit(this);
 				break;
+			case ValueEnum.N:
+				obj.tok.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -653,6 +656,22 @@ class Visitor : ConstVisitor {
 				obj.ted.visit(this);
 				break;
 			case TypeSystemDefinitionEnum.D:
+				obj.dd.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DS:
+				obj.des.visit(this);
+				obj.sch.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DT:
+				obj.des.visit(this);
+				obj.td.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DTE:
+				obj.des.visit(this);
+				obj.ted.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DD:
+				obj.des.visit(this);
 				obj.dd.visit(this);
 				break;
 		}
@@ -833,6 +852,30 @@ class Visitor : ConstVisitor {
 				obj.name.visit(this);
 				obj.typ.visit(this);
 				break;
+			case FieldDefinitionEnum.DAD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.arg.visit(this);
+				obj.typ.visit(this);
+				obj.dir.visit(this);
+				break;
+			case FieldDefinitionEnum.DA:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.arg.visit(this);
+				obj.typ.visit(this);
+				break;
+			case FieldDefinitionEnum.DD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.typ.visit(this);
+				obj.dir.visit(this);
+				break;
+			case FieldDefinitionEnum.DT:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.typ.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -878,6 +921,9 @@ class Visitor : ConstVisitor {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
+				break;
+			case ArgumentsDefinitionEnum.DA:
+				obj.des.visit(this);
 				break;
 		}
 		exit(obj);
@@ -1138,9 +1184,24 @@ class Visitor : ConstVisitor {
 		}
 		exit(obj);
 	}
+
+	void enter(Description obj) {}
+	void exit(Description obj) {}
+
+	void accept(Description obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case DescriptionEnum.S:
+				obj.tok.visit(this);
+				break;
+		}
+		exit(obj);
+	}
 }
 
 class ConstVisitor {
+@safe :
+
 
 	void enter(const(Document) obj) {}
 	void exit(const(Document) obj) {}
@@ -1658,6 +1719,9 @@ class ConstVisitor {
 			case ValueEnum.E:
 				obj.tok.visit(this);
 				break;
+			case ValueEnum.N:
+				obj.tok.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -1782,6 +1846,22 @@ class ConstVisitor {
 				obj.ted.visit(this);
 				break;
 			case TypeSystemDefinitionEnum.D:
+				obj.dd.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DS:
+				obj.des.visit(this);
+				obj.sch.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DT:
+				obj.des.visit(this);
+				obj.td.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DTE:
+				obj.des.visit(this);
+				obj.ted.visit(this);
+				break;
+			case TypeSystemDefinitionEnum.DD:
+				obj.des.visit(this);
 				obj.dd.visit(this);
 				break;
 		}
@@ -1962,6 +2042,30 @@ class ConstVisitor {
 				obj.name.visit(this);
 				obj.typ.visit(this);
 				break;
+			case FieldDefinitionEnum.DAD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.arg.visit(this);
+				obj.typ.visit(this);
+				obj.dir.visit(this);
+				break;
+			case FieldDefinitionEnum.DA:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.arg.visit(this);
+				obj.typ.visit(this);
+				break;
+			case FieldDefinitionEnum.DD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.typ.visit(this);
+				obj.dir.visit(this);
+				break;
+			case FieldDefinitionEnum.DT:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.typ.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -2007,6 +2111,9 @@ class ConstVisitor {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
+				break;
+			case ArgumentsDefinitionEnum.DA:
+				obj.des.visit(this);
 				break;
 		}
 		exit(obj);
@@ -2263,6 +2370,19 @@ class ConstVisitor {
 				break;
 			case InputObjectTypeDefinitionEnum.NI:
 				obj.name.visit(this);
+				break;
+		}
+		exit(obj);
+	}
+
+	void enter(const(Description) obj) {}
+	void exit(const(Description) obj) {}
+
+	void accept(const(Description) obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case DescriptionEnum.S:
+				obj.tok.visit(this);
 				break;
 		}
 		exit(obj);

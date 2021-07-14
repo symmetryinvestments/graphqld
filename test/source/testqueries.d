@@ -31,6 +31,28 @@ TestQuery(`
 	]
 }
 `),
+// identical to the previous query, but contains a carriage return to ensure
+// that they're parsed correctly
+TestQuery("
+{
+	starships(overSize: 600) {\r
+		commander {
+			allwaysNull {
+				id
+			}
+		}
+	}
+}", ShouldThrow.no,
+`{
+	"starships" : [
+		{
+			"commander" : {
+				"allwaysNull": null
+			}
+		}
+	]
+}
+`),
 TestQuery(`
 {
 	starships(overSize: 600) {
@@ -297,5 +319,82 @@ mutation one {
     }
   }
 }
-`, ShouldThrow.no)
+`, ShouldThrow.no),
+TestQuery(`
+{
+	starshipDoesNotExist {
+		id
+		commander {
+			name
+		}
+	}
+}`, ShouldThrow.yes,
+`{
+	"errors" : [
+		{ "message" : "That ship does not exists"
+		, "path" : ["SelectionSet", "starshipDoesNotExist"]
+		}
+	],
+	"data" : {
+		"starshipDoesNotExist" : null
+	}
+}`
+),
+TestQuery(`
+{
+	resolverWillThrow {
+		primaryFunction
+	}
+}`, ShouldThrow.yes,
+`{
+	"errors" : [
+		{ "message": "you can not pass"
+		, "path" : ["SelectionSet", "resolverWillThrow"]
+		}
+	],
+	"data" : {
+		"resolverWillThrow": null
+	}
+}`
+),
+TestQuery(`
+{
+search(name: "Enterprise") {
+  ... on Starship {
+    designation
+    size
+  }
+}
+}`, ShouldThrow.no,
+`{
+	"search": {
+		"size": 685.7,
+		"designation": "NCC-1701E"
+	}
+}`
+),
+TestQuery(`
+{
+search(name: "Enterprise") {
+  ... on Starship {
+	name
+  }
+  ... on Character {
+	name
+  }
+}
+}`, ShouldThrow.no
+),
+TestQuery(`
+{
+search(name: "Enterprise") {
+  ... on Starship {
+	name
+  }
+  ... on Character {
+	doesNotExist_FooBar
+  }
+}
+}`, ShouldThrow.yes
+)
 ];

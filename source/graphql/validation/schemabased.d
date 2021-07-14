@@ -28,13 +28,13 @@ import graphql.helper : lexAndParse;
 string astTypeToString(const(Type) input) pure {
 	final switch(input.ruleSelection) {
 		case TypeEnum.TN:
-			return format!"%s!"(input.tname.value);
+			return format("%s!", input.tname.value);
 		case TypeEnum.LN:
-			return format!"[%s]!"(astTypeToString(input.list.type));
+			return format("[%s]!", astTypeToString(input.list.type));
 		case TypeEnum.T:
-			return format!"%s"(input.tname.value);
+			return format("%s", input.tname.value);
 		case TypeEnum.L:
-			return format!"[%s]"(astTypeToString(input.list.type));
+			return format("[%s]", astTypeToString(input.list.type));
 	}
 }
 
@@ -52,11 +52,15 @@ struct TypePlusName {
 	}
 }
 
+struct DirectiveEntry {
+	string name;
+}
+
 class SchemaValidator(Schema) : Visitor {
 	import std.experimental.typecons : Final;
 	import graphql.schema.typeconversions;
 	import graphql.traits;
-	import graphql.helper : stringTypeStrip;
+	import graphql.helper : StringTypeStrip, stringTypeStrip;
 
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
@@ -64,6 +68,8 @@ class SchemaValidator(Schema) : Visitor {
 
 	const(Document) doc;
 	GQLDSchema!(Schema) schema;
+
+	private Json[string] typeMap;
 
 	// Single root field
 	IsSubscription isSubscription;
@@ -75,6 +81,8 @@ class SchemaValidator(Schema) : Visitor {
 
 	// Variables of operation
 	Type[string] variables;
+
+	DirectiveEntry[] directiveStack;
 
 	void addToTypeStack(string name) {
 		//writefln("\n\nFoo '%s' %s", name, this.schemaStack.map!(a => a.name));
@@ -102,38 +110,50 @@ class SchemaValidator(Schema) : Visitor {
 					this.schemaStack.back.name, name)
 			);
 
+
+		//writefln("%s %s %s", __LINE__, name, field.toString());
 		string followType = field[Constants.typenameOrig].get!string();
 		string old = followType;
-		followType = followType.stringTypeStrip();
+		StringTypeStrip stripped = followType.stringTypeStrip();
+		this.addTypeToStackImpl(name, stripped.str, old);
+	}
 
-		l: switch(followType) {
-			alias AllTypes = collectTypesPlusIntrospection!(Schema);
-			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
-			alias NoDups = NoDuplicates!(Stripped);
-			static foreach(type; NoDups) {{
-				case typeToTypeName!(type): {
-					this.schemaStack ~= TypePlusName(
-							removeNonNullAndList(typeToJson!(type,Schema)()),
-							name
-						);
-					//writeln(this.schemaStack.back.type.toPrettyString());
-					break l;
-				}
-			}}
-			default:
-				throw new UnknownTypeName(
-						format("No type with name '%s' '%s' is known",
-							followType, old), __FILE__, __LINE__);
+	void addTypeToStackImpl(string name, string followType, string old) {
+		if(auto tp = followType in typeMap) {
+			this.schemaStack ~= TypePlusName(tp.clone, name);
+		} else {
+			throw new UnknownTypeName(
+					  format("No type with name '%s' '%s' is known",
+							 followType, old), __FILE__, __LINE__);
 		}
 	}
 
 	this(const(Document) doc, GQLDSchema!(Schema) schema) {
+		import graphql.schema.introspectiontypes : IntrospectionTypes;
 		this.doc = doc;
 		this.schema = schema;
+		static void buildTypeMap(T)(ref Json[string] map) {
+			static if(is(T == stripArrayAndNullable!T)) {
+				map[typeToTypeName!T] =
+				   	removeNonNullAndList(typeToJson!(T, Schema)());
+			}
+		}
+		execForAllTypes!(Schema, buildTypeMap)(typeMap);
+		foreach(T; IntrospectionTypes) {
+			buildTypeMap!T(typeMap);
+		}
 		this.schemaStack ~= TypePlusName(
 				removeNonNullAndList(typeToJson!(Schema,Schema)()),
 				Schema.stringof
 			);
+	}
+
+	override void enter(const(Directive) dir) {
+		this.directiveStack ~= DirectiveEntry(dir.name.value);
+	}
+
+	override void exit(const(Directive) dir) {
+		this.directiveStack.popBack();
 	}
 
 	override void enter(const(OperationType) ot) {
@@ -162,24 +182,12 @@ class SchemaValidator(Schema) : Visitor {
 	override void enter(const(FragmentDefinition) fragDef) {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
-		l: switch(typeName) {
-			alias AllTypes = collectTypesPlusIntrospection!(Schema);
-			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
-			alias NoDups = NoDuplicates!(Stripped);
-			static foreach(type; NoDups) {{
-				case typeToTypeName!(type): {
-					this.schemaStack ~= TypePlusName(
-							removeNonNullAndList(typeToJson!(type,Schema)()),
-							typeName
-						);
-					//writeln(this.schemaStack.back.type.toPrettyString());
-					break l;
-				}
-			}}
-			default:
-				throw new UnknownTypeName(
-						format("No type with name '%s' is known",
-							typeName), __FILE__, __LINE__);
+		if(auto tp = typeName in typeMap) {
+			this.schemaStack ~= TypePlusName(tp.clone, typeName);
+		} else {
+			throw new UnknownTypeName(
+					  format("No type with name '%s' is known", typeName),
+					  __FILE__, __LINE__);
 		}
 	}
 
@@ -222,8 +230,13 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(FieldName) fn) {
-		//enforce(fn.name.value
-		this.addToTypeStack(fn.name.value);
+		import std.array : empty;
+		string n = fn.aka.value.empty ? fn.name.value : fn.aka.value;
+		this.addToTypeStack(n);
+	}
+
+	override void enter(const(InlineFragment) inF) {
+		this.addTypeToStackImpl(inF.tc.value, inF.tc.value, "");
 	}
 
 	override void exit(const(Selection) op) {
@@ -242,39 +255,75 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(Argument) arg) {
-		import std.algorithm.searching : find;
+		import std.algorithm.searching : find, endsWith;
 		const argName = arg.name.value;
-		const parent = this.schemaStack[$ - 2];
-		const curName = this.schemaStack.back.name;
-		auto fields = parent.type[Constants.fields];
-		if(fields.type != Json.Type.Array) {
-			return;
-		}
-		auto curNameFieldRange = fields.byValue
-			.find!(f => f[Constants.name].to!string() == curName);
-		if(curNameFieldRange.empty) {
-			return;
-		}
+		if(this.directiveStack.empty) {
+			const parent = this.schemaStack[$ - 2];
+			const curName = this.schemaStack.back.name;
+			auto fields = parent.type[Constants.fields];
+			if(fields.type != Json.Type.Array) {
+				return;
+			}
+			auto curNameFieldRange = fields.byValue
+				.find!(f => f[Constants.name].to!string() == curName);
+			if(curNameFieldRange.empty) {
+				return;
+			}
 
-		auto curNameField = curNameFieldRange.front;
+			auto curNameField = curNameFieldRange.front;
 
-		Json curArgs = curNameField[Constants.args];
-		auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
+			const Json curArgs = curNameField[Constants.args];
+			auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
 
-		enforce!ArgumentDoesNotExist(!argElem.empty, format!(
-				"Argument with name '%s' does not exist for field '%s' of type "
-				~ " '%s'")(argName, curName, parent.type[Constants.name]));
+			enforce!ArgumentDoesNotExist(!argElem.empty, format(
+					"Argument with name '%s' does not exist for field '%s' of type "
+					~ " '%s'", argName, curName, parent.type[Constants.name]));
 
-		if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
-			const varName = arg.vv.var.name.value;
-			auto varType = varName in this.variables;
-			enforce(varName !is null);
+			if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
+				const varName = arg.vv.var.name.value;
+				auto varType = varName in this.variables;
+				enforce(varName !is null);
 
-			string typeStr = astTypeToString(*varType);
-			enforce!VariableInputTypeMismatch(
-					argElem.front[Constants.typenameOrig] == typeStr,
-					format!"Variable type '%s' does not match argument type '%s'"
-					(argElem.front[Constants.typenameOrig], typeStr));
+				string typeStr = astTypeToString(*varType);
+				const c1 = argElem.front[Constants.typenameOrig] == typeStr;
+				const c2 = (typeStr.endsWith("!")
+							&& typeStr[0 .. $ - 1] == argElem.front[Constants.typenameOrig]);
+				const c3 = (typeStr.endsWith("In")
+							&& typeStr[0 .. $ - 2] == argElem.front[Constants.typenameOrig]);
+				const c4 = (typeStr.endsWith("In!")
+							&& (typeStr[0 .. $ - 3] ~ "!") == argElem.front[Constants.typenameOrig]);
+				const c5 = (typeStr.endsWith("In]!")
+							&& (typeStr[0 .. $ - 4] ~ "]!") == argElem.front[Constants.typenameOrig]);
+				const c6 = (typeStr.endsWith("In!]!")
+							&& (typeStr[0 .. $ - 5] ~ "!]!") == argElem.front[Constants.typenameOrig]);
+				const c7 = (typeStr.endsWith("In!]")
+							&& (typeStr[0 .. $ - 4] ~ "!]") == argElem.front[Constants.typenameOrig]);
+				enforce!VariableInputTypeMismatch(c1 || c2 || c3 || c4 || c5
+					|| c6 || c7
+						, format("Variable type '%s' does not match argument type '%s'"
+							~ " ! %s In %s In! %s c1 %s c2 %s c3 %s c4 %s c5 %s"
+							~ " c6 %s c7 %s"
+						, argElem.front[Constants.typenameOrig], typeStr
+						, typeStr.endsWith("!"), typeStr.endsWith("In")
+						, typeStr.endsWith("In!") , c1, c2, c3, c4, c5, c6, c7
+						));
+			}
+		} else {
+			enforce!ArgumentDoesNotExist(argName == "if", format(
+					"Argument of Directive '%s' is 'if' not '%s'",
+					this.directiveStack.back.name, argName));
+
+			if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
+				const varName = arg.vv.var.name.value;
+				auto varType = varName in this.variables;
+				enforce(varName !is null);
+
+				string typeStr = astTypeToString(*varType);
+				enforce!VariableInputTypeMismatch(
+						typeStr == "Boolean!",
+						format("Variable type '%s' does not match argument type 'Boolean!'"
+						, typeStr));
+			}
 		}
 	}
 }
@@ -720,5 +769,122 @@ query q($ships: [Int!]!) {
 	}
 }`;
 
+	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		crew {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
+}`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		crew {
+			... on Humanoid {
+				doesNotExist
+			}
+		}
+	}
+}`;
+
+	test!FieldDoesNotExist(str);
+}
+
+unittest {
+	string str = `
+query q($cw: Boolean!) {
+	starships {
+		crew @include(if: $cw) {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
+}`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query q($cw: Int!) {
+	starships {
+		crew @include(if: $cw) {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
+}`;
+
+	test!VariableInputTypeMismatch(str);
+}
+
+unittest {
+	string str = `
+query q($cw: Int!) {
+	starships {
+		crew @include(notIf: $cw) {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
+}`;
+
+	test!ArgumentDoesNotExist(str);
+}
+
+unittest {
+	string str = `
+query {
+	numberBetween(searchInput:
+		{ first: 10
+		, after: null
+		}
+	) {
+		id
+	}
+}
+`;
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query foo($after: String) {
+	numberBetween(searchInput:
+		{ first: 10
+		, after: $after
+		}
+	) {
+		id
+	}
+}
+`;
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query q {
+	androids {
+		primaryFunction #inherited
+		name #not inherited
+	}
+}
+`;
 	test!void(str);
 }

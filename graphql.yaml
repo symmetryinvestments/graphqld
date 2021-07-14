@@ -125,6 +125,7 @@ Value:
     ARR: [Array#arr]
     O: [ObjectType#obj]
     E: [name#tok]
+    N: [null_#tok]
 
 Type:
     TN: [name#tname, exclamation]
@@ -144,9 +145,9 @@ Array:
     Value: [lbrack, Values#vals, rbrack]
 
 ObjectValues:
-    V: [name#name, colon, Value#val]
-    Vsc: [name#name, colon, Value#val, comma, ObjectValues#follow]
-    Vs: [name#name, colon, Value#val, ObjectValues#follow]
+    V: [name#name, colon, ValueOrVariable#val]
+    Vsc: [name#name, colon, ValueOrVariable#val, comma, ObjectValues#follow]
+    Vs: [name#name, colon, ValueOrVariable#val, ObjectValues#follow]
 
 ObjectType:
     Var: [lcurly, ObjectValues#vals, rcurly]
@@ -156,6 +157,10 @@ TypeSystemDefinition:
     T: [TypeDefinition#td]
     TE: [TypeExtensionDefinition#ted]
     D: [DirectiveDefinition#dd]
+    DS: [Description#des, SchemaDefinition#sch]
+    DT: [Description#des, TypeDefinition#td]
+    DTE: [Description#des, TypeExtensionDefinition#ted]
+    DD: [Description#des, DirectiveDefinition#dd]
 
 TypeDefinition:
     S: [ScalarTypeDefinition#std]
@@ -203,6 +208,11 @@ FieldDefinition:
     A: [name#name, ArgumentsDefinition#arg, colon, Type#typ]
     D: [name#name, colon, Type#typ, Directives#dir]
     T: [name#name, colon, Type#typ]
+    DAD: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ,
+        Directives#dir]
+    DA: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ]
+    DD: [Description#des, name#name, colon, Type#typ, Directives#dir]
+    DT: [Description#des, name#name, colon, Type#typ]
 
 ImplementsInterfaces:
     N: [implements, NamedTypes#nts]
@@ -214,6 +224,7 @@ NamedTypes:
 
 ArgumentsDefinition:
     A: [lparen, InputValueDefinitions, rparen]
+    DA: [lparen, Description#des, InputValueDefinitions, rparen]
 
 InputValueDefinitions:
     I: [InputValueDefinition#iv]
@@ -276,3 +287,6 @@ InputObjectTypeDefinition:
     NDI: [input, name#name, Directives#dirs, lcurly,
         InputValueDefinitions, rcurly]
     NI: [input, name#name, lcurly, InputValueDefinitions, rcurly]
+
+Description:
+    S: [stringValue#tok]

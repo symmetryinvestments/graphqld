@@ -17,6 +17,7 @@ import graphql.helper;
 import graphql.traits;
 import graphql.constants;
 import graphql.graphql;
+import graphql.reflection;
 
 @safe:
 
@@ -32,10 +33,11 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 }
 
 GQLDSchema!(Type) toSchema(Type)() {
-	typeof(return) ret = new typeof(return)();
+	import graphql.uda : getUdaData, Ignore, TypeKind;
+	typeof(return) ret = new GQLDSchema!Type();
 
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
-		GQLDMap cur = new GQLDMap();
+		GQLDMap cur = new GQLDObject(qms, TypeKind.OBJECT);
 		cur.name = qms;
 		ret.member[qms] = cur;
 		if(qms == "queryType") {
@@ -45,43 +47,203 @@ GQLDSchema!(Type) toSchema(Type)() {
 		static if(__traits(hasMember, Type, qms)) {
 			alias QMSType = typeof(__traits(getMember, Type, qms));
 			static foreach(mem; __traits(allMembers, QMSType)) {{
-				alias MemType = typeof(__traits(getMember, QMSType, mem));
-				static if(isCallable!(MemType)) {{
-					GQLDOperation op = qms == "queryType"
-						? new GQLDQuery()
-						: qms == "mutationType" ? new GQLDMutation()
-						: qms == "subscriptionType" ? new GQLDSubscription()
-						: null;
-					cur.member[mem] = op;
-					assert(op !is null);
-					op.returnType = typeToGQLDType!(ReturnType!(MemType))(
-							ret
-						);
+				enum uda = getUdaData!(QMSType, mem);
+				static if(uda.ignore != Ignore.yes) {
+					alias MemType = typeof(__traits(getMember, QMSType, mem));
+					static if(isCallable!(MemType)) {{
+						GQLDOperation op = qms == "queryType"
+							? new GQLDQuery()
+							: qms == "mutationType" ? new GQLDMutation()
+							: qms == "subscriptionType" ? new GQLDSubscription()
+							: null;
+						cur.member[mem] = op;
+						assert(op !is null);
+						op.returnType = typeToGQLDType!(ReturnType!(MemType))(
+								ret
+							);
 
-					alias paraNames = ParameterIdentifierTuple!(
-							__traits(getMember, QMSType, mem)
-						);
-					alias paraTypes = Parameters!(
-							__traits(getMember, QMSType, mem)
-						);
-					static foreach(idx; 0 .. paraNames.length) {
-						op.parameters[paraNames[idx]] =
-							typeToGQLDType!(paraTypes[idx])(ret);
-					}
-				}}
+						alias paraNames = ParameterIdentifierTuple!(
+								__traits(getMember, QMSType, mem)
+							);
+						alias paraTypes = Parameters!(
+								__traits(getMember, QMSType, mem)
+							);
+						static foreach(idx; 0 .. paraNames.length) {
+							op.parameters[paraNames[idx]] =
+								typeToGQLDType!(paraTypes[idx])(ret);
+						}
+					}}
+				}
 			}}
 		}
 	}}
 	return ret;
 }
 
+enum __DirectiveLocation {
+	QUERY
+	, MUTATION
+	, SUBSCRIPTION
+	, FIELD
+	, FRAGMENT_DEFINITION
+	, FRAGMENT_SPREAD
+	, INLINE_FRAGMENT
+	, SCHEMA
+	, SCALAR
+	, OBJECT
+	, FIELD_DEFINITION
+	, ARGUMENT_DEFINITION
+	, INTERFACE
+	, UNION
+	, ENUM
+	, ENUM_VALUE
+	, INPUT_OBJECT
+	, INPUT_FIELD_DEFINITION
+}
+
+class __Directive {
+	string name;
+	Nullable!string description;
+	__DirectiveLocation[] locations;
+	__InputValue[] args;
+}
+
+enum __TypeKind {
+	SCALAR
+	, OBJECT
+	, INTERFACE
+	, UNION
+	, ENUM
+	, INPUT_OBJECT
+	, LIST
+	, NON_NULL
+}
+
+class __EnumValue {
+	string name;
+	Nullable!string description;
+	bool isDeprecated;
+	Nullable!string deprecationReason;
+}
+
+class __InputValue {
+	string name;
+	Nullable!string description;
+	__Type type;
+	Nullable!string defaultValue;
+}
+
+class __Field {
+	string name;
+	Nullable!string description;
+	__InputValue[] args;
+	__Type type;
+	bool isDeprecated;
+	Nullable!string deprecationReason;
+}
+
+class __Type {
+	__TypeKind kind;
+	string name;
+	Nullable!string description;
+	__Field[] fields(bool includeDeprecated = false) { assert(false);
+	}
+	Nullable!(__Type[]) interfaces;
+	Nullable!(__Type[]) possibleTypes;
+	Nullable!(__Field[]) enumValues(bool includeDeprecated = false) {
+		assert(false);
+	}
+	Nullable!(__InputValue[]) inputFields;
+	Nullable!(__Type) ofType;
+}
+
+class __Schema {
+	__Type types;
+	__Directive directives;
+}
+
 void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
+
+	static Json typeResolverImpl(Type)(ref const(StringTypeStrip) stripType,
+			Json parent, GraphQLD!(T,Con) graphql)
+	{
+		Json ret = Json.emptyObject();
+		const bool inner = stripType.innerNotNull;
+		const bool outer = stripType.outerNotNull;
+		const bool arr = stripType.arr;
+
+		if(inner && outer && arr) {
+			alias PassType = Type[];
+			ret["data"] = typeToJson!(PassType,T)();
+		} else if(!inner && outer && arr) {
+			static if(!is(Type == void)) {
+				alias PassType = Nullable!(Type)[];
+				ret["data"] = typeToJson!(PassType,T)();
+			} else {
+				ret.insertError(format("invalid type %s in %s",
+							Type.stringof,
+							parent.toPrettyString()));
+			}
+		} else if(inner && !outer && arr) {
+			alias PassType = Nullable!(Type[]);
+			ret["data"] = typeToJson!(PassType,T)();
+		} else if(!inner && !outer && arr) {
+			static if(!is(type == void)) {
+				alias PassType = Nullable!(Nullable!(Type)[]);
+				ret["data"] = typeToJson!(PassType,T)();
+			} else {
+				ret.insertError(format("invalid type %s in %s",
+							Type.stringof,
+							parent.toPrettyString()));
+			}
+		} else if(!inner && !arr) {
+			static if(!is(Type == void)) {
+				alias PassType = Nullable!(Type);
+				ret["data"] = typeToJson!(PassType,T)();
+			} else {
+				ret.insertError(format("invalid type %s in %s",
+							Type.stringof,
+							parent.toPrettyString()));
+			}
+		} else if(inner && !arr) {
+			alias PassType = Type;
+			ret["data"] = typeToJson!(PassType,T)();
+		} else {
+			assert(false, format("%s", stripType));
+		}
+		graphql.defaultResolverLog.logf("%s %s", stripType.str, ret["data"]);
+		return ret;
+	}
+
+	alias ResolverFunction =
+		Json function(ref const(StringTypeStrip), Json, GraphQLD!(T,Con)) @safe;
+
+	static ResolverFunction[string] handlers;
+
+	if(handlers is null) {
+		static void processType(type)(ref ResolverFunction[string] handlers) {
+			static if(!is(type == void)) {
+				enum typeConst = typeToTypeName!(type);
+				handlers[typeConst] = &typeResolverImpl!(type);
+			}
+		}
+
+		execForAllTypes!(T, processType)(handlers);
+
+		foreach(t; AliasSeq!(__Type, __Field, __InputValue,
+				__EnumValue, __TypeKind, __Directive, __DirectiveLocation))
+		{
+			 handlers[t.stringof] = &typeResolverImpl!t;
+		}
+	}
+
 	auto typeResolver = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
-			graphql.defaultResolverLog.logf("%s %s %s", name, args, parent);
-			Json ret = //returnTemplate();
-				Json.emptyObject();
+			graphql.defaultResolverLog.logf(
+					"TTTTTTRRRRRRR name %s args %s parent %s", name, args,
+					parent);
+			Json ret = Json.emptyObject();
 			string typeName;
 			if(Constants.name in args) {
 				typeName = args[Constants.name].get!string();
@@ -92,57 +254,67 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				typeName = parent[Constants.name].get!string();
 			}
 			string typeCap;
+			string old;
+			StringTypeStrip stripType;
 			if(typeName.empty) {
 				ret.insertError("unknown type");
 				goto retLabel;
 			} else {
 				typeCap = typeName;
+				old = typeName;
 			}
-			typeCap = typeCap.stringTypeStrip();
-			//pragma(msg, collectTypes!(T));
-			static foreach(type; collectTypes!(T)) {{
-				enum typeConst = typeToTypeName!(type);
-				if(typeCap == typeConst) {
-					ret["data"] = typeToJson!(type,T)();
-					graphql.defaultResolverLog.logf("%s %s %s", typeCap,
-							typeConst, ret["data"]
-						);
-					goto retLabel;
-				} else {
-					graphql.defaultResolverLog.logf("||||||||||| %s %s",
-							typeCap, typeConst
-						);
-				}
-			}}
+			stripType = typeCap.stringTypeStrip();
+			graphql.defaultResolverLog.logf("%s %s", __LINE__, stripType);
+
+			if(auto h = stripType.str in handlers) {
+				ret = (*h)(stripType, parent, graphql);
+			}
 			retLabel:
-			graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
+			//graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
+			graphql.defaultResolverLog.logf("TTTTT____RRRR %s",
+					ret.toPrettyString());
 			return ret;
 		};
 
-	QueryResolver!(Con) schemaResolver = delegate(string name, Json parent,
+	QueryResolver!(Con) schemaResolver = delegate(string _unused, Json parent,
 			Json args, ref Con context) @safe
 		{
 			//logf("%s %s %s", name, args, parent);
-			Json ret = //returnTemplate();
-				Json.emptyObject();
+			StringTypeStrip stripType;
+			Json ret = Json.emptyObject();
 			ret["data"] = Json.emptyObject();
 			ret["data"]["types"] = Json.emptyArray();
-			alias AllTypes = collectTypes!(T);
-			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
-			alias FixUp = staticMap!(fixupBasicTypes, NoListOrArray);
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__Type)(stripType, parent, graphql)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__Field)(stripType, parent, graphql)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__InputValue)(stripType, parent, graphql)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__EnumValue)(stripType, parent, graphql)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__TypeKind)(stripType, parent, graphql)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__Directive)(stripType, parent, graphql)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__DirectiveLocation)(stripType, parent,
+														graphql)["data"];
+
+			Json jsonTypes;
+			jsonTypes = Json.emptyArray;
 			static if(hasMember!(T, Constants.directives)) {
-				alias NoDirectives = EraseAll!(
-						typeof(__traits(getMember, T, Constants.directives)),
-						FixUp
-					);
+				import graphql.schema.typeconversions : typeToTypeName;
+				immutable string directiveTypeName =
+			   	   typeToTypeName!(typeof(__traits(getMember, T,
+												   Constants.directives)));
 			} else {
-				alias NoDirectives = FixUp;
+				immutable string directiveTypeName = "";
 			}
-			alias NoDup = NoDuplicates!(EraseAll!(T, NoDirectives));
-			static foreach(type; NoDup) {{
-				Json tmp = typeToJsonImpl!(type,T,type)();
-				ret["data"]["types"] ~= tmp;
-			}}
+			foreach(n, ref tsn; SchemaReflection!T.instance.jsonTypes) {
+				if(n != directiveTypeName && tsn.canonical)
+					jsonTypes ~= tsn.typeJson.clone;
+			}
+			ret["data"]["types"] ~= jsonTypes;
 			static if(hasMember!(T, Constants.directives)) {
 				ret["data"][Constants.directives] =
 					directivesToJson!(typeof(
@@ -169,7 +341,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
-				ret["data"] = tr["data"]["ofType"];
+				ret["data"] = tr["data"];
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString());
 				return ret;
@@ -184,7 +356,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
-				import std.string : capitalize;
 				Json ret = typeResolver(name, parent, args, context);
 				graphql.defaultResolverLog.logf("FIELDDDDD TYPPPPPE %s",
 						ret.toPrettyString()
@@ -199,7 +370,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
-				ret["data"] = tr["data"]["ofType"];
+				Json d = tr["data"];
+				ret["data"] = d;
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString()
 					);
@@ -217,6 +389,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				Json ofType;
 				if(parent.hasPathTo("ofType", ofType)) {
 					ret["data"] = ofType;
+				} else {
+					ret["data"] = Json(null);
 				}
 				graphql.defaultResolverLog.logf("%s", ret);
 				return ret;
@@ -249,21 +423,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 						foreach(Json it; interNames.byValue()) {
 							string typeName = it.get!string();
 							string typeCap = capitalize(typeName);
-							l: switch(typeCap) {
-								static foreach(type; collectTypes!(T)) {{
-									case typeToTypeName!(type): {
-									//if(typeCap == typeToTypeName!(type)) {
-										alias striped =
-											stripArrayAndNullable!type;
-										graphql.defaultResolverLog.logf("%s %s",
-												typeCap, striped.stringof
-											);
-										ret["data"] ~=
-											typeToJsonImpl!(striped,T,type)();
-										break l;
-									}
-								}}
-								default: break;
+							if(auto v = typeCap in
+							   SchemaReflection!T.instance.jsonTypes)
+							{
+								ret["data"] ~= v.typeJson.clone;
+								graphql.defaultResolverLog.logf("%s %s", typeCap, v.name);
 							}
 						}
 					}
@@ -293,22 +457,12 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 					foreach(Json it; pTypesNames.byValue()) {
 						string typeName = it.get!string();
 						string typeCap = capitalize(typeName);
-						l: switch(typeCap) {
-							static foreach(type; collectTypes!(T)) {
-								//if(typeCap == typeToTypeName!(type)) {
-								case typeToTypeName!(type): {
-									alias striped = stripArrayAndNullable!type;
-									graphql.defaultResolverLog.logf("%s %s",
-											typeCap, striped.stringof
-										);
-									ret["data"] ~=
-										typeToJsonImpl!(striped,T,type)();
-									break l;
-								}
-							}
-							default: {
-								break;
-							}
+						if(auto v = typeCap in
+						   SchemaReflection!T.instance.jsonTypes)
+						{
+							graphql.defaultResolverLog.logf("%s %s",
+															typeCap, v.name);
+							ret["data"] ~= v.typeJson.clone;
 						}
 					}
 				} else {

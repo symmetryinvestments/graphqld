@@ -7,6 +7,7 @@ import std.typecons;
 import std.typecons;
 import std.algorithm;
 import std.getopt;
+import std.regex;
 
 import std.experimental.logger;
 import std.experimental.logger.filelogger;
@@ -24,6 +25,8 @@ import graphql.helper;
 import graphql.schema;
 import graphql.traits;
 import graphql.argumentextractor;
+import graphql.schema.toschemafile;
+import graphql.exception;
 import graphql.graphql;
 import graphql.testschema;
 
@@ -38,6 +41,20 @@ struct CustomContext {
 	int userId;
 }
 
+void testSchemaDump(string fname, string newSchemaText) {
+	import std.file : writeFile = write, readText, FileException;
+	string oldSchemaText;
+	try {
+		oldSchemaText = replaceAll(readText(fname), regex(r"\r"), "");
+	} catch (FileException) {
+		oldSchemaText = newSchemaText;
+	}
+	// note: if this assertion fails because you deliberately changed the
+	// output format of schemaToString, simply remove the old schema[2].gql
+	assert(oldSchemaText == newSchemaText);
+	writeFile(fname, newSchemaText);
+}
+
 void main() {
  	database = new Data();
 	GQLDOptions opts;
@@ -45,9 +62,40 @@ void main() {
 	graphqld = new GraphQLD!(Schema,CustomContext)(opts);
 	graphqld.defaultResolverLog.logLevel = std.experimental.logger.LogLevel.off;
 	graphqld.resolverLog.logLevel = std.experimental.logger.LogLevel.off;
+	//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
 	graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
 
 	writeln(graphqld.schema);
+
+	testSchemaDump("schema.gql", schemaToString(graphqld));
+	testSchemaDump("schema2.gql", schemaToString!Schema2());
+
+	graphqld.setResolver("queryType", "search",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				import std.datetime;
+				Json* data = "name" in args;
+				const string argsName = data !is null ? data.get!string() : "";
+
+				foreach(c; database.chars) {
+					if(c.name == argsName) {
+						Json ret = characterToJson(c);
+						return ret;
+					}
+				}
+
+				foreach(s; database.ships) {
+					if(s.name == argsName) {
+						Json ret = starshipToJson(s);
+						return ret;
+					}
+				}
+
+				throw new GQLDExecutionException(format(
+					"No data with name '%s' found in database", argsName));
+			}
+		);
 
 	graphqld.setResolver("queryType", "currentTime",
 			delegate(string name, Json parent, Json args,
@@ -77,6 +125,33 @@ void main() {
 					}
 				}
 				return ret;
+			}
+		);
+
+	graphqld.setResolver("queryType", "starshipDoesNotExist",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				Json ret = Json.emptyObject();
+				if(name == "starshipDoesNotExist") {
+					throw new GQLDExecutionException(
+							"That ship does not exists");
+				}
+				return ret;
+			}
+		);
+
+	graphqld.setResolver("queryType", "resolverWillThrow",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				if(name == "resolverWillThrow") {
+					throw new GQLDExecutionException("you can not pass");
+				} else {
+					Json ret = Json.emptyObject();
+					ret["data"] = "foo";
+					return ret;
+				}
 			}
 		);
 
@@ -249,6 +324,7 @@ void main() {
 	lowerPrivileges();
 
 	logInfo("Please open http://127.0.0.1:8080/ in your browser.");
+
 	Task t;
 	if(!doNotRunTests) {
 	t = runTask({
@@ -272,13 +348,20 @@ void main() {
 								res.bodyReader.readAllUTF8()
 							);
 						if(q.st == ShouldThrow.yes) {
-							enforce("error" in ret
-									&& ret["error"].length != 1,
+							enforce("errors" in ret &&
+									ret["errors"].empty,
 									format("%s", ret.toPrettyString())
 								);
+							Json p = parseJsonString(q.expectedResult);
+							writefln("%s\n%s", p.toPrettyString(),
+									ret.toPrettyString());
+							assert(p == ret, format(
+										"got: %s\nexpeteced: %s",
+										p.toPrettyString(),
+										ret.toPrettyString()));
 						} else {
-							enforce("error" in ret
-									&& ret["error"].length == 0,
+							enforce("errors" !in ret,
+									//&& ret["errors"].length == 0,
 									format("%s", ret.toPrettyString())
 								);
 							enforce("data" in ret
@@ -298,15 +381,24 @@ void main() {
 			} catch(Exception e) {
 				hasThrown = true;
 				if(q.st == ShouldThrow.no) {
-					writefln("IM DIENING NOW %s %s\n%s", __LINE__, e, q);
-					assert(false, e.msg);
+					writefln("IM DIENING NOW %s %s %s\n%s", tqIdx, __LINE__, e,
+							q
+						);
+					assert(false, format("%s %s", tqIdx, e.msg));
+				} else {
+					if(!q.expectedResult.empty) {
+						Json c = parseJsonString(e.msg);
+						Json exp = parseJsonString(q.expectedResult);
+						assert(exp == c, format("expec: %s\nfound: %s",
+								exp.toPrettyString(), c.toPrettyString()));
+					}
 				}
 			}
 			if(q.st == ShouldThrow.yes && !hasThrown) {
-				writefln("I SHOULD HAVE THROWN NOW %s %s\n%s", __LINE__, e,
-						q
+				writefln("I SHOULD HAVE THROWN NOW %s %s %s\n%s", tqIdx,
+						__LINE__, e, q
 					);
-				assert(false);
+				assert(false, format("%s", tqIdx));
 			}
 			//});
 			//qt.join();
@@ -335,6 +427,16 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		);
 	res.headers.addField("Access-Control-Allow-Headers",
                 "Origin, X-Requested-With, Content-Type, Accept, " ~ "X-CSRF-TOKEN");
+
+	// DOCUMENTATION
+	//
+	// graphql requests can be passed differently depending if it is a GET
+	// or POST request
+	// The variable `toParse` will contain the graphql query/mutation after
+	// the next few lines
+	//
+	//
+
 	Json j = req.json;
 	//writefln("input %s req %s headers %s", j, req.toString(), req.headers);
 	string toParse;
@@ -351,11 +453,31 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		}
 		//writeln(toParse);
 	}
+
+	// DOCUMENTATION
+	//
+	// graphql requests can be depended on variables passed in form of json.
+	// The next few lines will extract available variables and store them
+	// in the variable named `vars`
+	//
+	//
+
 	Json vars = Json.emptyObject();
 	if(j.type == Json.Type.object && "variables" in j) {
 		vars = j["variables"];
 	}
 	//writeln(j.toPrettyString());
+
+	// DOCUMENTATION
+	//
+	// graphql is a programming language/query language.
+	// It is common to split the recognition of such a language into two steps.
+	// The lexing, and the parsing.
+	// The lexer results is passed into the parser.
+	// This is done on the next to lines.
+	// The string in `toParse` we extracted earlier is passed into the lexer.
+	//
+	//
 
 	auto l = Lexer(toParse);
 	auto p = Parser(l);
@@ -363,8 +485,27 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	try {
 		import graphql.validation.querybased;
 		import graphql.validation.schemabased;
+
+		// DOCUMENTATION
+		//
+		// `parseDocument()` actually parses the graphql string.
+		// If this throws, in case of a invalid graphql program we need to
+		// report this in a way that graphql clients expect.
+		// This is done in the catch block.
+		//
+		//
 		Document d = p.parseDocument();
+
+
 		const(Document) cd = d;
+
+		// DOCUMENTATION
+		//
+		// As with most programming language the graphql program has to be
+		// checked for semantic correctness.
+		// This is done in the next few lines
+		//
+		//
 		QueryValidator fv = new QueryValidator(d);
 	    fv.accept(cd);
 	    noCylces(fv.fragmentChildren);
@@ -373,9 +514,25 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 				graphqld.schema
 			);
 		sv.accept(cd);
+
+
+		// DOCUMENTATION
+		//
+		// The next few lines actually execute the graphql program.
+		// The result will be the json that can be returned to the graphql
+		// client.
+		//
+		//
 		CustomContext con;
 		Json gqld = graphqld.execute(d, vars, con);
 
+		writeln(gqld.toPrettyString());
+
+		// DOCUMENTATION
+		//
+		// Write the resulting json to the vibe.d server response.
+		// This is the end of the graphqld execution cycle
+		//
 		res.writeJsonBody(gqld);
 		return;
 	} catch(Throwable e) {
@@ -385,9 +542,17 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 			app.put(e.toString());
 			e = cast(Exception)e.next;
 		}
+		//writefln("\n\n\n\n#####\n%s\n#####\n\n\n\n", app.data);
+		// DOCUMENTATION
+		//
+		// If the lexing/parsing or validating failed we need to let the graphql
+		// client know.
+		// The Exception text is inserted into the json by the helper function
+		// `insertError`.
+		// The json is then returned
+		//
 		Json ret = Json.emptyObject;
-		ret["error"] = Json.emptyArray;
-		ret["error"] ~= Json(app.data);
+		ret.insertError(app.data);
 		res.writeJsonBody(ret);
 		return;
 	}

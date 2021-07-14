@@ -1,19 +1,40 @@
 module graphql.helper;
 
-import std.algorithm.searching : canFind;
-import std.algorithm.iteration : splitter;
-import std.format : format;
+import std.array : empty;
+import std.algorithm.iteration : each, splitter;
+import std.algorithm.searching : startsWith, endsWith, canFind;
+import std.conv : to;
+import std.datetime : DateTime, Date;
 import std.exception : enforce, assertThrown;
 import std.experimental.logger;
+import std.format : format;
+import std.stdio;
+import std.string : capitalize, indexOf, strip;
+import std.typecons : nullable, Nullable;
 
 import vibe.data.json;
 
 import graphql.ast;
+import graphql.uda;
+import graphql.constants;
+import graphql.exception;
 
 @safe:
 
+/** dmd and ldc have problems with generation all functions
+This functions call functions that were undefined.
+*/
+private void undefinedFunctions() @trusted {
+	static import core.internal.hash;
+	static import graphql.schema.introspectiontypes;
+
+	const(graphql.schema.introspectiontypes.__Type)[] tmp;
+	core.internal.hash.hashOf!(const(graphql.schema.introspectiontypes.__Type)[])
+		(tmp, 0);
+}
+
 enum d = "data";
-enum e = "error";
+enum e = Constants.errors;
 
 string firstCharUpperCase(string input) {
 	import std.conv : to;
@@ -32,19 +53,28 @@ string firstCharUpperCase(string input) {
 Json returnTemplate() {
 	Json ret = Json.emptyObject();
 	ret["data"] = Json.emptyObject();
-	ret["error"] = Json.emptyArray();
+	ret[Constants.errors] = Json.emptyArray();
 	return ret;
 }
 
 void insertError(T)(ref Json result, T t) {
-	Json err = serializeToJson(t);
+	insertError(result, t, []);
+}
+
+void insertError(T)(ref Json result, T t, PathElement[] path) {
+	Json tmp = Json.emptyObject();
+	tmp["message"] = serializeToJson(t);
+	if(!path.empty) {
+		tmp["path"] = Json.emptyArray();
+		foreach(it; path) {
+			tmp["path"] ~= it.toJson();
+		}
+	}
 	if(e !in result) {
 		result[e] = Json.emptyArray();
 	}
 	enforce(result[e].type == Json.Type.array);
-	if(!canFind(result[e].byValue(), err)) {
-		result[e] ~= err;
-	}
+	result[e] ~= tmp;
 }
 
 void insertPayload(ref Json result, string field, Json data) {
@@ -100,8 +130,8 @@ bool dataIsEmpty(ref const(Json) data) {
 	import std.experimental.logger;
 	if(data.type == Json.Type.object) {
 		foreach(key, value; data.byKeyValue()) {
-			if(key != "error" && !value.dataIsEmpty()) {
-			//if(key != "error") { // Issue #22 place to look at
+			if(key != Constants.errors && !value.dataIsEmpty()) {
+			//if(key != Constants.errors) { // Issue #22 place to look at
 				return false;
 			}
 		}
@@ -127,7 +157,7 @@ bool dataIsEmpty(ref const(Json) data) {
 }
 
 unittest {
-	string t = `{ "error": {} }`;
+	string t = `{ "errors" : {} }`;
 	Json j = parseJsonString(t);
 	assert(j.dataIsEmpty());
 }
@@ -242,7 +272,7 @@ unittest {
 
 	b = parseJsonString(`{"underSize":-100}`);
 	const d = joinJson(b, a);
-	Json r = parseJsonString(`{"overSize":200, "underSize":-100}`);
+	immutable Json r = parseJsonString(`{"overSize":200, "underSize":-100}`);
 	assert(d == r);
 }
 
@@ -319,6 +349,9 @@ unittest {
 	Json d = parseJsonString(`{ "foo" : { "path" : "foo" } }`);
 	Json ret;
 	assert(hasPathTo!Json(d, "foo", ret));
+	assert("path" in ret);
+	assert(ret["path"].type == Json.Type.string);
+	assert(ret["path"].get!string() == "foo");
 }
 
 /**
@@ -337,7 +370,7 @@ T getWithDefault(T)(Json data, string[] paths...) {
 }
 
 unittest {
-	Json d = parseJsonString(`{"error":[],"data":{"commanderId":8,
+	Json d = parseJsonString(`{"errors":[],"data":{"commanderId":8,
 			"__typename":"Starship","series":["DeepSpaceNine",
 			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
 			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}}`);
@@ -369,9 +402,9 @@ auto accessNN(string[] tokens,T)(T tmp0) {
 	import std.format : format;
 	if(tmp0 !is null) {
 		static foreach(idx, token; tokens) {
-			mixin(format!
+			mixin(format(
 				`if(tmp%d is null) return null;
-				auto tmp%d = tmp%d.%s;`(idx, idx+1, idx, token)
+				auto tmp%d = tmp%d.%s;`, idx, idx+1, idx, token)
 			);
 		}
 		return mixin(format("tmp%d", tokens.length));
@@ -405,30 +438,104 @@ unittest {
 	assert(c1.accessNN!(["b", "a"]) !is null);
 }
 
+T jsonTo(T)(Json item) {
+	static import std.conv;
+	static if(is(T == enum)) {
+		enforce!GQLDExecutionException(item.type == Json.Type.string,
+			format("Enum '%s' must be passed as string not '%s'",
+				T.stringof, item.type));
+
+		string s = item.to!string();
+		try {
+			return std.conv.to!T(s);
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
+	} else static if(is(T == GQLDCustomLeaf!Fs, Fs...)) {
+		enforce!GQLDExecutionException(item.type == Json.Type.string,
+			format("%1$s '%1$s' must be passed as string not '%2$s'",
+				T.stringof, item.type));
+
+		string s = item.to!string();
+		try {
+			return T(Fs[2](s));
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
+	} else {
+		try {
+			return item.to!T();
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
+	}
+}
+
 T extract(T)(Json data, string name) {
-	enforce(data.type == Json.Type.object, format!
+	enforce!GQLDExecutionException(data.type == Json.Type.object, format(
 			"Trying to get a '%s' by name '%s' but passed Json is not an object"
-			(T.stringof, name)
+			, T.stringof, name)
 		);
 
 	Json* item = name in data;
 
-	enforce(item !is null, format!(
+	enforce!GQLDExecutionException(item !is null, format(
 			"Trying to get a '%s' by name '%s' which is not present in passed "
 			~ "object '%s'"
-			)(T.stringof, name, data)
+			, T.stringof, name, data)
 		);
 
-	return (*item).to!T();
+	return jsonTo!(T)(*item);
+}
+
+unittest {
+	import std.exception : assertThrown;
+	Json j = parseJsonString(`null`);
+	assertThrown(j.extract!string("Hello"));
+}
+
+unittest {
+	enum E {
+		no,
+		yes
+	}
+	import std.exception : assertThrown;
+	Json j = parseJsonString(`{ "foo": 1337 }`);
+
+	assertThrown(j.extract!E("foo"));
+
+	j = parseJsonString(`{ "foo": "str" }`);
+	assertThrown(j.extract!E("foo"));
+
+	j = parseJsonString(`{ "foo": "yes" }`);
+	assert(j.extract!E("foo") == E.yes);
 }
 
 unittest {
 	import std.exception : assertThrown;
 	Json j = parseJsonString(`{ "foo": 1337 }`);
-	auto foo = j.extract!int("foo");
+	immutable auto foo = j.extract!int("foo");
 
 	assertThrown(Json.emptyObject().extract!float("Hello"));
 	assertThrown(j.extract!string("Hello"));
+}
+
+unittest {
+	import std.exception : assertThrown;
+	enum FooEn {
+		a,
+		b
+	}
+	Json j = parseJsonString(`{ "foo": "a" }`);
+	immutable auto foo = j.extract!FooEn("foo");
+	assert(foo == FooEn.a);
+
+	assertThrown(Json.emptyObject().extract!float("Hello"));
+	assertThrown(j.extract!string("Hello"));
+	assert(j["foo"].jsonTo!FooEn() == FooEn.a);
+
+	Json k = parseJsonString(`{ "foo": "b" }`);
+	assert(k["foo"].jsonTo!FooEn() == FooEn.b);
 }
 
 const(Document) lexAndParse(string s) {
@@ -440,41 +547,57 @@ const(Document) lexAndParse(string s) {
 	return doc;
 }
 
-string stringTypeStrip(string str) {
-	import std.algorithm.searching : startsWith, endsWith, canFind;
-	import std.string : capitalize;
-	immutable fs = ["Nullable!", "NullableStore!", "GQLDCustomLeaf!"];
-	immutable arr = "[]";
-	outer: while(true) {
-		foreach(f; fs) {
-			if(str.startsWith(f)) {
-				str = str[f.length .. $];
-				continue outer;
-			}
-		}
-		if(str.endsWith(arr)) {
-			str = str[0 .. str.length - arr.length];
-			continue;
-		} else if(str.endsWith("!")) {
-			str = str[0 .. $ - 1];
-			continue;
-		} else if(str.startsWith("[")) {
-			str = str[1 .. $];
-			continue;
-		} else if(str.endsWith("]")) {
-			str = str[0 .. $ - 1];
-			continue;
-		} else if(str.startsWith("(")) {
-			str = str[1 .. $];
-			continue;
-		} else if(str.endsWith(")")) {
-			str = str[0 .. $ - 1];
-			continue;
-		} else if(str.endsWith("'")) {
-			str = str[0 .. $ - 1];
-			continue;
-		}
-		break;
+struct StringTypeStrip {
+	string input;
+	string str;
+	bool outerNotNull;
+	bool arr;
+	bool innerNotNull;
+
+	string toString() const {
+		import std.format : format;
+		return format("StringTypeStrip(input:'%s', str:'%s', "
+			   ~ "arr:'%s', outerNotNull:'%s', innerNotNull:'%s')",
+			   this.input, this.str, this.arr, this.outerNotNull,
+			   this.innerNotNull);
+	}
+}
+
+StringTypeStrip stringTypeStrip(string str) {
+	Nullable!StringTypeStrip gqld = gqldStringTypeStrip(str);
+	return gqld.get();
+	//return gqld.isNull()
+	//	? dlangStringTypeStrip(str)
+	//	: gqld.get();
+}
+
+private Nullable!StringTypeStrip gqldStringTypeStrip(string str) {
+	StringTypeStrip ret;
+	ret.input = str;
+	immutable string old = str;
+	bool firstBang;
+	if(str.endsWith('!')) {
+		firstBang = true;
+		str = str[0 .. $ - 1];
+	}
+
+	bool arr;
+	if(str.startsWith('[') && str.endsWith(']')) {
+		arr = true;
+		str = str[1 .. $ - 1];
+	}
+
+	bool secondBang;
+	if(str.endsWith('!')) {
+		secondBang = true;
+		str = str[0 .. $ - 1];
+	}
+
+	if(arr) {
+		ret.innerNotNull = secondBang;
+		ret.outerNotNull = firstBang;
+	} else {
+		ret.innerNotNull = firstBang;
 	}
 
 	str = canFind(["ubyte", "byte", "ushort", "short", "long", "ulong"], str)
@@ -491,84 +614,343 @@ string stringTypeStrip(string str) {
 	str = str == "__directive" ? "__Directive" : str;
 	str = str == "__field" ? "__Field" : str;
 
-	return str;
+	ret.arr = arr;
+
+	ret.str = str;
+	//writefln("%s %s", __LINE__, ret);
+
+	//return old == str ? Nullable!(StringTypeStrip).init : nullable(ret);
+	return nullable(ret);
 }
 
 unittest {
-	string t = "Nullable!string";
-	string r = t.stringTypeStrip();
-	assert(r == "String", r);
+	auto a = gqldStringTypeStrip("String");
+	assert(!a.isNull());
 
-	t = "Nullable!(string[])";
-	r = t.stringTypeStrip();
-	assert(r == "String", r);
+	a = gqldStringTypeStrip("String!");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().innerNotNull, format("%s", a.get()));
+
+	a = gqldStringTypeStrip("[String!]");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().arr, format("%s", a.get()));
+	assert(a.get().innerNotNull, format("%s", a.get()));
+
+	a = gqldStringTypeStrip("[String]!");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().arr, format("%s", a.get()));
+	assert(!a.get().innerNotNull, format("%s", a.get()));
+	assert(a.get().outerNotNull, format("%s", a.get()));
+
+	a = gqldStringTypeStrip("[String!]!");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().arr, format("%s", a.get()));
+	assert(a.get().innerNotNull, format("%s", a.get()));
+	assert(a.get().outerNotNull, format("%s", a.get()));
 }
 
-unittest {
-	string t = "Nullable!__type";
-	string r = t.stringTypeStrip();
-	assert(r == "__Type", r);
+private StringTypeStrip dlangStringTypeStrip(string str) {
+	StringTypeStrip ret;
+	ret.outerNotNull = true;
+	ret.innerNotNull = true;
+	ret.input = str;
 
-	t = "Nullable!(__type[])";
-	r = t.stringTypeStrip();
-	assert(r == "__Type", r);
-}
+	immutable ns = "NullableStore!";
+	immutable ns1 = "NullableStore!(";
+	immutable leaf = "GQLDCustomLeaf!";
+	immutable leaf1 = "GQLDCustomLeaf!(";
+	immutable nll = "Nullable!";
+	immutable nll1 = "Nullable!(";
 
-Json toGraphqlJson(T)(auto ref T obj) {
-	import std.traits : isArray, FieldNameTuple, FieldTypeTuple;
-	import std.array : empty;
-	import std.typecons : Nullable;
-	import nullablestore;
-
-	alias names = FieldNameTuple!(T);
-	alias types = FieldTypeTuple!(T);
-
-	static if(isArray!T) {
-		Json ret = Json.emptyArray();
-		foreach(ref it; obj) {
-			ret ~= toGraphqlJson(it);
-		}
-	} else {
-		Json ret = Json.emptyObject();
-
-		// the important bit is the setting of the __typename field
-		ret["__typename"] = T.stringof;
-
-		static foreach(idx; 0 .. names.length) {{
-			static if(!names[idx].empty) {
-				//writefln("%s %s", __LINE__, names[idx]);
-				static if(is(types[idx] : Nullable!Type, Type)) {
-					if(__traits(getMember, obj, names[idx]).isNull()) {
-						ret[names[idx]] = Json(null);
-					} else {
-						ret[names[idx]] = serializeToJson(
-								__traits(getMember, obj, names[idx])
-							);
-					}
-				} else static if(is(types[idx] : NullableStore!Type, Type)) {
-				} else {
-					ret[names[idx]] = serializeToJson(
-							__traits(getMember, obj, names[idx])
-						);
-				}
-			}
-		}}
+	// NullableStore!( .... )
+	if(str.startsWith(ns1) && str.endsWith(")")) {
+		str = str[ns1.length .. $ - 1];
 	}
+
+	// NullableStore!....
+	if(str.startsWith(ns)) {
+		str = str[ns.length .. $];
+	}
+
+	// GQLDCustomLeaf!( .... )
+	if(str.startsWith(leaf1) && str.endsWith(")")) {
+		str = str[leaf1.length .. $ - 1];
+	}
+
+	bool firstNull;
+
+	// Nullable!( .... )
+	if(str.startsWith(nll1) && str.endsWith(")")) {
+		firstNull = true;
+		str = str[nll1.length .. $ - 1];
+	}
+
+	// NullableStore!( .... )
+	if(str.startsWith(ns1) && str.endsWith(")")) {
+		str = str[ns1.length .. $ - 1];
+	}
+
+	// NullableStore!....
+	if(str.startsWith(ns)) {
+		str = str[ns.length .. $];
+	}
+
+	if(str.endsWith("!")) {
+		str = str[0 .. $ - 1];
+	}
+
+	// xxxxxxx[]
+	if(str.endsWith("[]")) {
+		ret.arr = true;
+		str = str[0 .. $ - 2];
+	}
+
+	bool secondNull;
+
+	// Nullable!( .... )
+	if(str.startsWith(nll1) && str.endsWith(")")) {
+		secondNull = true;
+		str = str[nll1.length .. $ - 1];
+	}
+
+	if(str.endsWith("!")) {
+		str = str[0 .. $ - 1];
+	}
+
+	// Nullable! ....
+	if(str.startsWith(nll)) {
+		secondNull = true;
+		str = str[nll.length .. $];
+	}
+
+	// NullableStore!( .... )
+	if(str.startsWith(ns1) && str.endsWith(")")) {
+		str = str[ns1.length .. $ - 1];
+	}
+
+	// NullableStore!....
+	if(str.startsWith(ns)) {
+		str = str[ns.length .. $];
+	}
+
+	str = canFind(["ubyte", "byte", "ushort", "short", "long", "ulong"], str)
+		? "Int"
+		: str;
+
+	str = canFind(["string", "int", "float", "bool"], str)
+		? capitalize(str)
+		: str;
+
+	str = str == "__type" ? "__Type" : str;
+	str = str == "__schema" ? "__Schema" : str;
+	str = str == "__inputvalue" ? "__InputValue" : str;
+	str = str == "__directive" ? "__Directive" : str;
+	str = str == "__field" ? "__Field" : str;
+
+	//writefln("firstNull %s, secondNull %s, arr %s", firstNull, secondNull,
+	//		ret.arr);
+
+	if(ret.arr) {
+		ret.innerNotNull = !secondNull;
+		ret.outerNotNull = !firstNull;
+	} else {
+		ret.innerNotNull = !secondNull;
+	}
+
+	ret.str = str;
 	return ret;
 }
 
 unittest {
+	string t = "Nullable!string";
+	StringTypeStrip r = t.dlangStringTypeStrip();
+	assert(r.str == "String", to!string(r));
+	assert(!r.arr, to!string(r));
+	assert(!r.innerNotNull, to!string(r));
+	assert(r.outerNotNull, to!string(r));
+
+	t = "Nullable!(string[])";
+	r = t.dlangStringTypeStrip();
+	assert(r.str == "String", to!string(r));
+	assert(r.arr, to!string(r));
+	assert(r.innerNotNull, to!string(r));
+	assert(!r.outerNotNull, to!string(r));
+}
+
+unittest {
+	string t = "Nullable!__type";
+	StringTypeStrip r = t.dlangStringTypeStrip();
+	assert(r.str == "__Type", to!string(r));
+	assert(!r.innerNotNull, to!string(r));
+	assert(r.outerNotNull, to!string(r));
+	assert(!r.arr, to!string(r));
+
+	t = "Nullable!(__type[])";
+	r = t.dlangStringTypeStrip();
+	assert(r.str == "__Type", to!string(r));
+	assert(r.innerNotNull, to!string(r));
+	assert(!r.outerNotNull, to!string(r));
+	assert(r.arr, to!string(r));
+}
+
+template isClass(T) {
+	enum isClass = is(T == class);
+}
+
+unittest {
+	static assert(!isClass!int);
+	static assert( isClass!Object);
+}
+
+template isNotInTypeSet(T, R...) {
+	import std.meta : staticIndexOf;
+	enum isNotInTypeSet = staticIndexOf!(T, R) == -1;
+}
+
+string getTypename(Schema,T)(auto ref T input) @trusted {
+	//pragma(msg, T);
+	//writefln("To %s", T.stringof);
+	static if(!isClass!(T)) {
+		return T.stringof;
+	} else {
+		// fetch the typeinfo of the item, and compare it down until we get to a
+		// class we have. If none found, return the name of the type itself.
+		import graphql.reflection;
+		auto tinfo = typeid(input);
+		const auto reflect = SchemaReflection!Schema.instance;
+		while(tinfo !is null) {
+			if(auto cname = tinfo in reflect.classes) {
+				return *cname;
+			}
+			tinfo = tinfo.base;
+		}
+		return T.stringof;
+	}
+}
+
+Json toGraphqlJson(Schema,T)(auto ref T input) {
+	import std.array : empty;
+	import std.conv : to;
 	import std.typecons : Nullable;
+	import std.traits : isArray, isAggregateType, isBasicType, isSomeString,
+		   isScalarType, isSomeString, FieldNameTuple, FieldTypeTuple;
+
+	import nullablestore;
+
+	static if(isArray!T && !isSomeString!T) {
+		Json ret = Json.emptyArray();
+		foreach(ref it; input) {
+			ret ~= toGraphqlJson!Schema(it);
+		}
+		return ret;
+	} else static if(is(T : GQLDCustomLeaf!Type, Type...)) {
+		return Json(Type[1](input));
+	} else static if(is(T : Nullable!Type, Type)) {
+		return input.isNull() ? Json(null) : toGraphqlJson!Schema(input.get());
+	} else static if(is(T == enum)) {
+		return Json(to!string(input));
+	} else static if(isBasicType!T || isScalarType!T || isSomeString!T) {
+		return serializeToJson(input);
+	} else static if(isAggregateType!T) {
+		Json ret = Json.emptyObject();
+
+		// the important bit is the setting of the __typename field
+		ret["__typename"] = getTypename!(Schema)(input);
+		//writefln("Got %s", ret["__typename"].to!string());
+
+		alias names = FieldNameTuple!(T);
+		alias types = FieldTypeTuple!(T);
+		static foreach(idx; 0 .. names.length) {{
+			static if(!names[idx].empty) {
+				static if(is(types[idx] : NullableStore!Type, Type)) {
+				} else static if(is(types[idx] == enum)) {
+					ret[names[idx]] =
+						to!string(__traits(getMember, input, names[idx]));
+				} else {
+					ret[names[idx]] = toGraphqlJson!Schema(
+							__traits(getMember, input, names[idx])
+						);
+				}
+			}
+		}}
+		return ret;
+	} else {
+		static assert(false, T.stringof ~ " not supported");
+	}
+}
+
+string dtToString(DateTime dt) {
+	return dt.toISOExtString();
+}
+
+DateTime stringToDT(string s) {
+	return DateTime.fromISOExtString(s);
+}
+
+string dToString(Date dt) {
+	return dt.toISOExtString();
+}
+
+unittest {
+	import std.typecons : nullable, Nullable;
 	import nullablestore;
 
 	struct Foo {
 		int a;
 		Nullable!int b;
 		NullableStore!float c;
+		GQLDCustomLeaf!(DateTime, dtToString, stringToDT) dt2;
+		Nullable!(GQLDCustomLeaf!(DateTime, dtToString, stringToDT)) dt;
 	}
 
+	DateTime dt = DateTime(1337, 7, 1, 1, 1, 1);
+	DateTime dt2 = DateTime(2337, 7, 1, 1, 1, 3);
+
+	alias DT = GQLDCustomLeaf!(DateTime, dtToString, stringToDT);
+
 	Foo foo;
-	Json j = toGraphqlJson(foo);
+	foo.dt2 = DT(dt2);
+	foo.dt = nullable(DT(dt));
+	Json j = toGraphqlJson!int(foo);
 	assert(j["a"].to!int() == 0);
 	assert(j["b"].type == Json.Type.null_);
+	assert(j["dt"].type == Json.Type.string, format("%s\n%s", j["dt"].type,
+				j.toPrettyString()
+			)
+		);
+	immutable string exp = j["dt"].to!string();
+	assert(exp == "1337-07-01T01:01:01", exp);
+	immutable string exp2 = j["dt2"].to!string();
+	assert(exp2 == "2337-07-01T01:01:03", exp2);
+
+	immutable DT back = extract!DT(j, "dt");
+	assert(back.value == dt);
+
+	immutable DT back2 = extract!DT(j, "dt2");
+	assert(back2.value == dt2);
+}
+
+struct PathElement {
+	string str;
+	size_t idx;
+
+	static PathElement opCall(string s) {
+		PathElement ret;
+		ret.str = s;
+		return ret;
+	}
+
+	static PathElement opCall(size_t s) {
+		PathElement ret;
+		ret.idx = s;
+		return ret;
+	}
+
+	Json toJson() {
+		return this.str.empty ? Json(this.idx) : Json(this.str);
+	}
 }

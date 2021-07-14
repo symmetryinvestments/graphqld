@@ -118,18 +118,24 @@ template isNotObject(Type) {
 
 template isNotCustomLeaf(Type) {
 	import graphql.uda;
-	enum isNotCustomLeaf = !is(Type : GQLDCustomLeaf!F, F);
+	enum isNotCustomLeaf = !is(Type : GQLDCustomLeaf!Fs, Fs...);
 }
 
 unittest {
-	alias t = AliasSeq!(int, GQLDCustomLeaf!int);
+	string toS(int i) {
+		return "";
+	}
+	int fromS(string s) {
+		return 0;
+	}
+	alias t = AliasSeq!(int, GQLDCustomLeaf!(int, toS, fromS));
 	alias f = Filter!(isNotCustomLeaf, t);
 	static assert(is(f == AliasSeq!(int)));
 }
 
 template collectTypesImpl(Type) {
 	import graphql.uda;
-	static if(is(Type : GQLDCustomLeaf!F, F)) {
+	static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
 		alias collectTypesImpl = AliasSeq!(Type);
 	} else static if(is(Type == interface)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
@@ -266,6 +272,9 @@ template fixupBasicTypes(T) {
 	} else static if(isArray!T) {
 		alias ElemFix = fixupBasicTypes!(ElementEncodingType!T);
 		alias fixupBasicTypes = ElemFix[];
+	} else static if(is(T : GQLDCustomLeaf!Fs, Fs...)) {
+		alias ElemFix = fixupBasicTypes!(Fs[0]);
+		alias fixupBasicTypes = GQLDCustomLeaf!(ElemFix, Fs[1 .. $]);
 	} else static if(is(T : Nullable!F, F)) {
 		alias ElemFix = fixupBasicTypes!(F);
 		alias fixupBasicTypes = Nullable!(ElemFix);
@@ -416,28 +425,17 @@ template stringofType(T) {
 
 string[] interfacesForType(Schema)(string typename) {
 	import std.algorithm.searching : canFind;
-	alias filtered = staticMap!(stripArrayAndNullable, collectTypes!Schema);
-	alias Types = NoDuplicates!(filtered);
-	switch(typename) {
-		static foreach(T; Types) {
-			case T.stringof: {
-				static enum ret = [NoDuplicates!(staticMap!(stringofType,
-						EraseAll!(Object, AllIncarnations!(T, Types))))
-					];
-				//logf("%s %s %s", typename, T.stringof, ret);
-				return ret;
-			}
-		}
-		default:
-			//logf("DEFAULT: '%s'", typename);
-			if(canFind(["__Type", "__Field", "__InputValue", "__Schema",
-						"__EnumValue", "__TypeKind", "__Directive",
-						"__DirectiveLocation"], typename))
-			{
-				return [typename];
-			}
-			return string[].init;
+	import graphql.reflection : SchemaReflection;
+	if(auto result = typename in SchemaReflection!Schema.instance.bases) {
+		return *result;
 	}
+	if(canFind(["__Type", "__Field", "__InputValue", "__Schema",
+			   "__EnumValue", "__TypeKind", "__Directive",
+			   "__DirectiveLocation"], typename))
+	{
+		return [typename];
+	}
+	return string[].init;
 }
 
 template PossibleTypes(Type, Schema) {
@@ -463,4 +461,85 @@ template PossibleTypesImpl(Type, AllTypes...) {
 				);
 		}
 	}
+}
+
+// compiler has a hard time inferring safe. So we have to tag it.
+void execForAllTypes(T, alias fn, Context...)(auto ref Context context) @safe {
+	// establish a seen array to ensure no infinite recursion.
+	execForAllTypesImpl!(T, fn)((bool[void*]).init, context);
+}
+
+@trusted private void* keyFor(TypeInfo ti) {
+	return cast(void*)ti;
+}
+
+void execForAllTypesImpl(Type, alias fn, Context...)(
+							bool[void*] seen, auto ref Context context) @safe
+{
+	alias FixedType = fixupBasicTypes!Type;
+	static if(!is(FixedType == Type)) {
+		return .execForAllTypesImpl!(FixedType, fn)(seen, context);
+	} else static if(isArray!Type && !is(Type == string)) {
+		return .execForAllTypesImpl!(typeof(Type.init[0]), fn)(seen, context);
+	} else static if( // only process types we are interested in
+		  isAggregateType!Type ||
+		  is(Type == bool) ||
+		  is(Type == enum) ||
+		  is(Type == long) ||
+		  is(Type == float) ||
+		  is(Type == string))
+	{
+		auto tid = keyFor(typeid(Type));
+		if(auto v = tid in seen) {
+			// already in there
+			return;
+		}
+		// store the result
+		seen[tid] = true;
+		fn!Type(context);
+
+		// now, handle the types we can get to from this type.
+		static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
+			// ignore subtypes
+		} else static if(is(Type : WrapperStore!F, F)) {
+			// ignores subtypes
+		} else static if(is(Type : Nullable!F, F)) {
+			.execForAllTypesImpl!(F, fn)(seen, context);
+		} else static if(is(Type : NullableStore!F, F)) {
+			.execForAllTypesImpl!(Type.TypeValue, fn)(seen, context);
+		} else static if(isAggregateType!Type) { // class, struct, interface, union
+			// do callables first. Then do fields separately
+			foreach(mem; __traits(allMembers, Type)) {{
+				 static if(__traits(getProtection, __traits(getMember, Type, mem))
+						   == "public"
+						   && isCallable!(__traits(getMember, Type, mem)))
+				 {
+					 // return type
+					 .execForAllTypesImpl!(ReturnType!(
+									   __traits(getMember, Type, mem)), fn)
+						 (seen, context);
+					 // parameters
+					 foreach(T; ParameterTypeTuple!(__traits(getMember,
+																	Type, mem)))
+					 {
+						 .execForAllTypesImpl!(T, fn)(seen, context);
+					 }
+				 }
+			}}
+
+			// now do all fields
+			foreach(T; Fields!Type) {
+				.execForAllTypesImpl!(T, fn)(seen, context);
+			}
+
+			// do any base types (stolen from BaseTypeTuple, which annoyingly
+			// doesn't work on all aggregates)
+			static if(is(Type S == super)) {
+				static foreach(T; S) {
+					.execForAllTypesImpl!(T, fn)(seen, context);
+				}
+			}
+		}
+	}
+	// other types we don't care about.
 }

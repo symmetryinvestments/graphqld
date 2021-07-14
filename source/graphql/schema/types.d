@@ -7,10 +7,12 @@ import std.traits;
 import std.typecons;
 import std.algorithm.iteration : map, joiner;
 import std.algorithm.searching : canFind;
+import std.container : RedBlackTree;
 import std.range : ElementEncodingType;
 import std.format;
 import std.string : strip;
 import std.experimental.logger;
+import std.stdio;
 
 import vibe.data.json;
 
@@ -24,6 +26,7 @@ import graphql.uda;
 @safe:
 
 enum GQLDKind {
+	SimpleScalar,
 	String,
 	Float,
 	Int,
@@ -60,7 +63,7 @@ abstract class GQLDType {
 }
 
 class GQLDScalar : GQLDType {
-	this(GQLDKind kind) {
+	this(GQLDKind kind = GQLDKind.SimpleScalar) {
 		super(kind);
 	}
 }
@@ -69,6 +72,10 @@ class GQLDLeaf : GQLDScalar {
 	this(string name) {
 		super(GQLDKind.CustomLeaf);
 		super.name = name;
+	}
+
+	override string toString() const {
+		return format("GQLDCustomLeaf(%s)", this.name);
 	}
 }
 
@@ -107,9 +114,13 @@ class GQLDInt : GQLDScalar {
 
 class GQLDEnum : GQLDScalar {
 	string enumName;
-	this(string enumName) {
+	string[] memberNames;
+	// should this also grab the values, for integration with something like
+	// https://www.apollographql.com/docs/apollo-server/schema/scalars-enums/#internal-values ?
+	this(string enumName, string[] memberNames = []) {
 		super(GQLDKind.Enum);
 		this.enumName = enumName;
+		this.memberNames = memberNames;
 		super.name = enumName;
 	}
 
@@ -121,23 +132,25 @@ class GQLDEnum : GQLDScalar {
 class GQLDBool : GQLDScalar {
 	this() {
 		super(GQLDKind.Bool);
-		super.name = "Bool";
+		super.name = "Boolean";
 	}
 
 	override string toString() const {
-		return "Bool";
+		return "Boolean";
 	}
 }
 
 class GQLDMap : GQLDType {
 	GQLDType[string] member;
+	RedBlackTree!string outputOnlyMembers;
 	GQLDMap[] derivatives;
 
 	this() {
-		super(GQLDKind.Map);
+		this(GQLDKind.Map);
 	}
 	this(GQLDKind kind) {
 		super(kind);
+		this.outputOnlyMembers = new RedBlackTree!string();
 	}
 
 	void addDerivative(GQLDMap d) {
@@ -156,19 +169,17 @@ class GQLDMap : GQLDType {
 }
 
 class GQLDObject : GQLDMap {
-	GQLDObject _base;
-
-	@property const(GQLDObject) base() const {
-		return cast(const)this._base;
-	}
-
-	@property void base(GQLDObject nb) {
-		this._base = nb;
-	}
+	GQLDObject base;
+	TypeKind typeKind;
 
 	this(string name) {
 		super(GQLDKind.Object_);
 		super.name = name;
+	}
+
+	this(string name, TypeKind tk) {
+		this(name);
+		this.typeKind = tk;
 	}
 
 	override string toString() const {
@@ -336,7 +347,7 @@ class GQLDSchema(Type) : GQLDMap {
 
 	void createInbuildTypes() {
 		this.types["string"] = new GQLDString();
-		foreach(t; ["String", "Int", "Float", "Bool"]) {
+		foreach(t; ["String", "Int", "Float", "Boolean"]) {
 			GQLDObject tmp = new GQLDObject(t);
 			this.types[t] = tmp;
 			tmp.member[Constants.name] = new GQLDString();
@@ -354,8 +365,8 @@ class GQLDSchema(Type) : GQLDMap {
 
 		auto b = new GQLDBool();
 		auto nnB = new GQLDNonNull(b);
-		this.__schema = new GQLDObject("__schema");
-		this.__type = new GQLDObject("__Type");
+		this.__schema = new GQLDObject(Constants.__schema);
+		this.__type = new GQLDObject(Constants.__Type);
 		this.__nullableType = new GQLDNullable(this.__type);
 		this.__schema.member["mutationType"] = this.__nullableType;
 		this.__schema.member["subscriptionType"] = this.__nullableType;
@@ -420,7 +431,11 @@ class GQLDSchema(Type) : GQLDMap {
 				this.__enumValue
 			));
 
-		this.__type.member[Constants.enumValues] = this.__listOfNonNullEnumValue;
+		auto nnListOfNonNullEnumValue = new
+			GQLDNullable(this.__listOfNonNullEnumValue);
+
+		//this.__type.member[Constants.enumValues] = this.__listOfNonNullEnumValue;
+		this.__type.member[Constants.enumValues] = nnListOfNonNullEnumValue;
 
 		this.__directives = new GQLDObject(Constants.__Directive);
 		this.__directives.member[Constants.name] = nnStr;
@@ -436,7 +451,7 @@ class GQLDSchema(Type) : GQLDMap {
 			);
 
 
-		foreach(t; ["String", "Int", "Float", "Bool"]) {
+		foreach(t; ["String", "Int", "Float", "Boolean"]) {
 			this.types[t].toObject().member[Constants.fields] =
 				this.__listOfNonNullField;
 		}
@@ -458,26 +473,29 @@ class GQLDSchema(Type) : GQLDMap {
 
 	GQLDType getReturnType(GQLDType t, string field) {
 		GQLDType ret;
+		GQLDObject ob = t.toObject();
 		if(auto s = t.toScalar()) {
 			ret = s;
+			goto retLabel;
 		} else if(auto op = t.toOperation()) {
 			ret = op.returnType;
+			goto retLabel;
 		} else if(auto map = t.toMap()) {
-			if((map.name == "queryType" || map.name == "mutationType"
-						|| map.name == "subscriptionType")
-					&& field in map.member)
-			{
+			if(field in map.member) {
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
 					ret = op.returnType;
+					goto retLabel;
 				} else {
 					ret = tmp;
+					goto retLabel;
 				}
-			} else if(field in map.member) {
-				ret = map.member[field];
+			} else if(ob && ob.base && field in ob.base.member) {
+				return ob.base.member[field];
 			} else if(field == "__typename") {
 				// the type of the field __typename is always a string
 				ret = this.types["string"];
+				goto retLabel;
 			} else {
 				// if we couldn't find it in the passed map, maybe it is in some
 				// of its derivatives
@@ -491,6 +509,7 @@ class GQLDSchema(Type) : GQLDMap {
 		} else {
 			ret = t;
 		}
+		retLabel:
 		return ret;
 	}
 }
@@ -541,21 +560,23 @@ string toShortString(const(GQLDType) e) {
 	}
 }
 
-GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
+GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
+	alias TypeUQ = Unqual!TypeQ;
+	alias Type = TypeQ;
 	static if(is(Type == enum)) {
 		GQLDEnum r;
 		if(Type.stringof in ret.types) {
 			r = cast(GQLDEnum)ret.types[Type.stringof];
 		} else {
-			r = new GQLDEnum(Type.stringof);
+			r = new GQLDEnum(Type.stringof, [__traits(allMembers, Type)]);
 			ret.types[Type.stringof] = r;
 		}
 		return r;
-	} else static if(is(Type == bool)) {
+	} else static if(is(Type == bool) || is(TypeUQ == bool)) {
 		return new GQLDBool();
-	} else static if(isFloatingPoint!(Type)) {
+	} else static if(isFloatingPoint!(Type) || isFloatingPoint!(TypeUQ)) {
 		return new GQLDFloat();
-	} else static if(isIntegral!(Type)) {
+	} else static if(isIntegral!(Type) || isIntegral!(TypeUQ)) {
 		return new GQLDInt();
 	} else static if(isSomeString!Type) {
 		return new GQLDString();
@@ -583,43 +604,82 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
-	} else static if(is(Type : GQLDCustomLeaf!F, F)) {
-		return new GQLDLeaf(F.stringof);
+	} else static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
+		return new GQLDLeaf(Fs[0].stringof);
 	} else static if(is(Type : NullableStore!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
 	} else static if(isArray!Type) {
-		return new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret)
-			);
+		return new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret));
 	} else static if(isAggregateType!Type) {
-		GQLDObject r;
-		if(Type.stringof in ret.types) {
-			r = cast(GQLDObject)ret.types[Type.stringof];
-		} else {
-			r = new GQLDObject(Type.stringof);
-			ret.types[Type.stringof] = r;
+		import graphql.uda;
 
-			alias fieldNames = FieldNameTuple!(Type);
-			alias fieldTypes = Fields!(Type);
-			static foreach(idx; 0 .. fieldNames.length) {{
-				static if(fieldNames[idx] != Constants.directives) {{
+		if(Type.stringof in ret.types) {
+			return cast(GQLDObject)ret.types[Type.stringof];
+		}
+
+		enum tuda = getUdaData!Type;
+
+		GQLDObject r;
+		r = tuda.typeKind != TypeKind.UNDEFINED
+		    ? new GQLDObject(Type.stringof, tuda.typeKind)
+		    : new GQLDObject(Type.stringof);
+		ret.types[Type.stringof] = r;
+
+		alias fieldNames = FieldNameTuple!(Type);
+		alias fieldTypes = Fields!(Type);
+		static foreach(idx; 0 .. fieldNames.length) {{
+			enum uda = getUdaData!(Type, fieldNames[idx]);
+			static if(uda.ignore != Ignore.yes) {
+				static if (fieldNames[idx] != Constants.directives) {
 					r.member[fieldNames[idx]] =
 						typeToGQLDType!(fieldTypes[idx])(ret);
-				}}
-			}}
-
-			static if(is(Type == class)) {
-				alias bct = BaseClassesTuple!(Type);
-				static if(bct.length > 1) {
-					auto d = cast(GQLDObject)typeToGQLDType!(bct[0])(
-							ret
-						);
-					r.base = d;
-					d.addDerivative(r);
-
+					static if(uda.ignoreForInput == IgnoreForInput.yes) {
+						r.outputOnlyMembers.insert(fieldNames[idx]);
+					}
 				}
-				assert(bct.length > 1 ? r.base !is null : true);
 			}
+		}}
+
+		static if(is(Type == class)) {
+			alias bct = BaseClassesTuple!(Type);
+			static if(bct.length > 1) {
+				auto d = cast(GQLDObject)typeToGQLDType!(bct[0])(
+						ret
+						);
+				r.base = d;
+				d.addDerivative(r);
+
+			}
+			assert(bct.length > 1 ? r.base !is null : true);
 		}
+
+		static foreach(mem; __traits(allMembers, Type)) {{
+			// not a type
+			static if(!is(__traits(getMember, Type, mem))) {
+				enum uda = getUdaData!(Type, mem);
+				alias MemType = typeof(__traits(getMember, Type, mem));
+				static if(uda.ignore != Ignore.yes && isCallable!MemType) {
+					GQLDOperation op = new GQLDQuery();
+					r.member[mem] = op;
+					op.returnType =
+						typeToGQLDType!(ReturnType!(MemType))(ret);
+
+					alias paraNames = ParameterIdentifierTuple!(
+							__traits(getMember, Type, mem)
+							);
+					alias paraTypes = Parameters!(
+							__traits(getMember, Type, mem)
+							);
+					static foreach(idx; 0 .. paraNames.length) {
+						op.parameters[paraNames[idx]] =
+							typeToGQLDType!(paraTypes[idx])(ret);
+					}
+					static if(uda.ignoreForInput == IgnoreForInput.yes) {
+						r.outputOnlyMembers.insert(mem);
+					}
+				}
+			}
+		}}
 		return r;
 	} else {
 		static assert(false, Type.stringof);

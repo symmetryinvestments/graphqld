@@ -1,5 +1,7 @@
 module graphql.uda;
 
+import std.array : empty;
+import std.datetime : DateTime;
 import std.traits : isBuiltinType;
 
 @safe:
@@ -49,10 +51,26 @@ enum IsDeprecated {
 	no
 }
 
-struct GQLDCustomLeaf(T) {
+string toStringImpl(T)(T t) {
+	static if(__traits(hasMember, T, "toString")) {
+		return t.toString();
+	} else {
+		import std.format : format;
+		return format("%s", t);
+	}
+}
+
+/* The wrapped
+	T = the wrapped type
+	SerializationFun = the function to use to serialize T
+*/
+struct GQLDCustomLeaf(T, alias SerializationFun, alias DeserializationFun) {
 	alias Type = T;
 	Type value;
 	alias value this;
+
+	alias Fun = SerializationFun;
+	alias DeFun = SerializationFun;
 
 	this(Type value) {
 		this.value = value;
@@ -61,25 +79,46 @@ struct GQLDCustomLeaf(T) {
 	void opAssign(Type value) {
 		this.value = value;
 	}
+
+	GQLDCustomLeaf!(T, SerializationFun, DeserializationFun) _from(T input) @safe {
+		return GQLDCustomLeaf!(T, SerializationFun, DeserializationFun)(input);
+	}
+
+	static auto fromRepresentation(T input) @safe {
+		auto myself = typeof(this).init;
+		return myself._from(input);
+	}
+
+	T toRepresentation() @safe const {
+		return this.value;
+	}
+
+}
+
+private string tS(DateTime dt) {
+	return dt.toISOExtString();
+}
+
+private DateTime fS(string s) {
+	return DateTime.fromISOExtString(s);
 }
 
 unittest {
-	import std.datetime : DateTime;
 	import vibe.data.json;
 
 	Json fun(DateTime dt) {
 		return Json(dt.toISOExtString());
 	}
 
-	auto f = GQLDCustomLeaf!DateTime();
+	auto f = GQLDCustomLeaf!(DateTime, tS, fS)();
 
-	GQLDCustomLeaf!DateTime dt = DateTime(1337, 1, 1);
+	GQLDCustomLeaf!(DateTime, tS, fS) dt = DateTime(1337, 1, 1);
 }
 
 unittest {
 	import std.typecons : Nullable, nullable;
 	import std.datetime : DateTime;
-	Nullable!(GQLDCustomLeaf!DateTime) dt;
+	Nullable!(GQLDCustomLeaf!(DateTime, tS, fS)) dt;
 }
 
 struct GQLDDeprecatedData {
@@ -89,6 +128,9 @@ struct GQLDDeprecatedData {
 
 struct GQLDDescription {
 	string text;
+	string getText() const {
+		return text !is null && !text.empty ? this.text : "";
+	}
 }
 
 GQLDDeprecatedData GQLDDeprecated(IsDeprecated isDeprecated) {
@@ -146,16 +188,12 @@ template getUdaData(Type) {
 }
 
 template getUdaData(Type, string mem) {
-	//static if(isBuiltinType!(typeof(__traits(getMember, Type, mem)))) {
-	//	enum  getUdaData = GQLDUdaData.init;
-	//} else {
-		alias GQLDUdaDataAS = getGQLDUdaData!(Type, mem);
-		static if(GQLDUdaDataAS.length > 0) {
-			enum  getUdaData = GQLDUdaDataAS[0];
-		} else {
-			enum  getUdaData = GQLDUdaData.init;
-		}
-	//}
+	alias GQLDUdaDataAS = getGQLDUdaData!(Type, mem);
+	static if(GQLDUdaDataAS.length > 0) {
+		enum  getUdaData = GQLDUdaDataAS[0];
+	} else {
+		enum  getUdaData = GQLDUdaData.init;
+	}
 }
 
 unittest {

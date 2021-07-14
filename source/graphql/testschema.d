@@ -27,6 +27,20 @@ union SearchResult {
 	Starship ship;
 }
 
+string dtToString(DateTime dt) {
+	return dt.toISOExtString();
+}
+
+DateTime stringToDT(string s) {
+	return DateTime.fromISOExtString(s);
+}
+
+struct Input {
+	size_t first;
+	@optional
+	Nullable!string after;
+}
+
 @GQLDUda(TypeKind.OBJECT)
 struct Query {
 	@GQLDUda(
@@ -38,35 +52,46 @@ struct Query {
 	)
 	SearchResult search(string name);
 	Nullable!Starship starship(long id);
+	Starship starshipDoesNotExist();
 	Starship[] starships(float overSize = 100.0);
 	Starship[] shipsselection(long[] ids);
 	Nullable!Character character(long id);
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
-	GQLDCustomLeaf!DateTime currentTime();
+	Android[] resolverWillThrow();
+	GQLDCustomLeaf!(DateTime, dtToString, stringToDT) currentTime();
 	int currentTime();
+	Starship numberBetween(Input searchInput);
+
+	@GQLDUda(Ignore.yes)
+	void ignoreMe() {
+	}
 }
 
 unittest {
 	Query d;
 }
 
+@GQLDUda(TypeKind.INPUT_OBJECT) struct Vector { float x, y; }
 @GQLDUda(TypeKind.INPUT_OBJECT)
 struct AddCrewmanData {
 	string name;
 	long shipId;
+	Vector location;
 	Series[] series;
 }
 
+/*@GQLDUda(TypeKind.INPUT_OBJECT)
 struct AddCrewmanComplexInput {
 	Character crewman;
 	Starship starship;
-}
+}*/
 
 interface Mutation {
 	Character addCrewman(AddCrewmanData input);
-	Starship addCrewmanCompley(AddCrewmanComplexInput input);
+	Character getStupidestCrewman();
+	//Starship addCrewmanCompley(AddCrewmanComplexInput input);
 }
 
 interface Subscription {
@@ -100,17 +125,22 @@ abstract class Character {
 	Character[] commanders;
 	Nullable!Starship allwaysNull;
 	Nullable!int alsoAllwaysNull;
+	const bool isDead;
 
 	//NullableStore!AddCrewmanData data;
 }
 
-abstract class Humanoid : Character {
+class Humanoid : Character {
 	string species;
-	GQLDCustomLeaf!Date dateOfBirth;
+	GQLDCustomLeaf!(Date, dToString, stringToDT) dateOfBirth;
 }
 
-abstract class Android : Character {
+class Android : Character {
 	string primaryFunction;
+
+	@GQLDUda(Ignore.yes)
+	void ignoreMeToo() {
+	}
 }
 
 @GQLDUda(
@@ -119,12 +149,16 @@ abstract class Android : Character {
 class Starship {
 	long id;
 	string name;
+
 	@GQLDUda(
 		GQLDDescription("The name used when speaking about the ship")
 	)
 	string designation;
 	double size;
 
+	@GQLDUda(
+		GQLDDescription("The person in charge")
+	)
 	Character commander;
 	Nullable!(Series)[] series;
 	Character[] crew;
@@ -137,9 +171,8 @@ class Starship {
 	}
 
 	override string toString() const @safe {
-		return format!("Ship(id(%d), designation(%s), size(%.2f), name(%s)"
-					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])")
-			(
+		return format("Ship(id(%d), designation(%s), size(%.2f), name(%s)"
+					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])",
 				 id, designation, size, name, commander.name, series,
 				 crew.map!(a => a.name)
 			);

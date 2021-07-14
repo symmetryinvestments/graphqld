@@ -194,6 +194,9 @@ class ArgumentExtractor : ConstVisitor {
 			case ValueEnum.E:
 				this.assign(Json(val.tok.value));
 				break;
+			case ValueEnum.N:
+				this.assign(Json(null));
+				break;
 		}
 	}
 }
@@ -209,5 +212,5 @@ unittest {
 }
 `;
 
-	auto d = lexAndParse(s);
+	const auto d = lexAndParse(s);
 }

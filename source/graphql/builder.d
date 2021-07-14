@@ -110,11 +110,13 @@ fragment fooo on Hero {
 }
 
 struct FieldRangeItem {
+	import std.array : empty;
 	Field f;
 	Document doc;
 
 	@property string name() {
 		return f.name.name.value;
+		//return f.name.aka.value.empty ? f.name.name.value : f.name.aka.value;
 	}
 
 	@property string aka() {
@@ -123,7 +125,7 @@ struct FieldRangeItem {
 }
 
 struct FieldRange {
-	FixedSizeArray!(Selections,32) cur;
+	FixedSizeArray!(Selections,64) cur;
 	Document doc;
 	string[] typenames;
 	Json vars;
@@ -608,11 +610,10 @@ fragment baz on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto nn = ["hello", "name", "zzzz", "age", "args"];
+	immutable auto nn = ["hello", "name", "zzzz", "age", "args"];
 	size_t cnt = 0;
 	foreach(it; opDefRange(d)) {
 		++cnt;
-		long idx;
 		foreach(jt; it.fieldRange(["User"])) {
 		}
 	}

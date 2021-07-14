@@ -53,7 +53,7 @@ class QueryValidator : ConstVisitor {
 	}
 
 	string[][string] fragmentChildren;
-	FixedSizeArray!string curFragment;
+	FixedSizeArray!(string,64) curFragment;
 	string[] allFrags;
 	bool[string] reachedFragments;
 
@@ -127,7 +127,7 @@ class QueryValidator : ConstVisitor {
 
 	override void enter(const(Directive) dir) {
 		enforce!DirectiveNotUnique(dir.name.value !in this.directiveNames.back,
-			format!"Directive '%s' must be unique at %s:%s"(dir.name.value,
+			format("Directive '%s' must be unique at %s:%s", dir.name.value,
 				dir.name.line, dir.name.column));
 
 		this.directiveNames.back[dir.name.value] = true;
@@ -268,14 +268,16 @@ bool[string] computeVariablesUsedByFragments(bool[string] fragmentsUsed,
 		string[string] variablesUsed)
 {
 	bool[string] ret;
-	fragmentsUsed
+	foreach(a; fragmentsUsed
 		.byKey()
 		.filter!(a => a in variablesUsed)
 		.map!(a => variablesUsed[a])
 		.array
 		.sort
-		.uniq
-		.each!(a => ret[a] = true);
+		.uniq)
+	{
+		ret[a] = true;
+	}
 	return ret;
 }
 

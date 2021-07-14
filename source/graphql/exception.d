@@ -1,9 +1,9 @@
 module graphql.exception;
 
-@safe:
-
 
 class ParseException : Exception {
+@safe:
+
 	int line;
 	string[] subRules;
 	string[] follows;
@@ -29,6 +29,14 @@ class ParseException : Exception {
 
 	this(string msg, ParseException other, string f, int l) {
 		super(msg, f, l, other);
+		this.line = l;
+	}
+}
+
+@safe:
+class GQLDExecutionException : Exception {
+	this(string msg, string f = __FILE__, size_t l = __LINE__) {
+		super(msg, f, l);
 		this.line = l;
 	}
 }

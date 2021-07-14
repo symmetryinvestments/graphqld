@@ -9,9 +9,9 @@ import graphql.lexer;
 
 import graphql.exception;
 
-@safe:
-
 struct Parser {
+@safe :
+
 	import std.array : appender;
 
 	import std.format : formattedWrite;
@@ -49,13 +49,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Document' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["directive -> Definition","enum_ -> Definition","extend -> Definition","fragment -> Definition","input -> Definition","interface_ -> Definition","lcurly -> Definition","mutation -> Definition","query -> Definition","scalar -> Definition","schema -> Definition","subscription -> Definition","type -> Definition","union_ -> Definition"]
+			["directive -> Definition","enum_ -> Definition","extend -> Definition","fragment -> Definition","input -> Definition","interface_ -> Definition","lcurly -> Definition","mutation -> Definition","query -> Definition","scalar -> Definition","schema -> Definition","stringValue -> Definition","subscription -> Definition","type -> Definition","union_ -> Definition"]
 		);
 
 	}
@@ -95,13 +95,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Definitions' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["directive -> TypeSystemDefinition","enum_ -> TypeSystemDefinition","extend -> TypeSystemDefinition","fragment -> FragmentDefinition","input -> TypeSystemDefinition","interface_ -> TypeSystemDefinition","lcurly -> OperationDefinition","mutation -> OperationDefinition","query -> OperationDefinition","scalar -> TypeSystemDefinition","schema -> TypeSystemDefinition","subscription -> OperationDefinition","type -> TypeSystemDefinition","union_ -> TypeSystemDefinition"]
+			["directive -> TypeSystemDefinition","enum_ -> TypeSystemDefinition","extend -> TypeSystemDefinition","fragment -> FragmentDefinition","input -> TypeSystemDefinition","interface_ -> TypeSystemDefinition","lcurly -> OperationDefinition","mutation -> OperationDefinition","query -> OperationDefinition","scalar -> TypeSystemDefinition","schema -> TypeSystemDefinition","stringValue -> TypeSystemDefinition","subscription -> OperationDefinition","type -> TypeSystemDefinition","union_ -> TypeSystemDefinition"]
 		);
 
 	}
@@ -147,13 +147,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Definition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["lcurly -> SelectionSet","mutation -> OperationType","query -> OperationType","subscription -> OperationType","fragment","directive -> DirectiveDefinition","enum_ -> TypeDefinition","extend -> TypeExtensionDefinition","input -> TypeDefinition","interface_ -> TypeDefinition","scalar -> TypeDefinition","schema -> SchemaDefinition","type -> TypeDefinition","union_ -> TypeDefinition"]
+			["lcurly -> SelectionSet","mutation -> OperationType","query -> OperationType","subscription -> OperationType","fragment","directive -> DirectiveDefinition","enum_ -> TypeDefinition","extend -> TypeExtensionDefinition","input -> TypeDefinition","interface_ -> TypeDefinition","scalar -> TypeDefinition","schema -> SchemaDefinition","stringValue -> Description","type -> TypeDefinition","union_ -> TypeDefinition"]
 		);
 
 	}
@@ -209,7 +209,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'OperationDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -230,7 +230,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'OperationDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -254,7 +254,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'OperationDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -274,7 +274,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'OperationDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -301,7 +301,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'OperationDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -321,7 +321,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'OperationDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -344,7 +344,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'OperationDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -363,7 +363,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'OperationDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -375,7 +375,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'OperationDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -419,7 +419,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'SelectionSet' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -431,7 +431,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'SelectionSet' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -443,7 +443,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'SelectionSet' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -498,7 +498,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'OperationType' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -550,7 +550,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'Selections' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -566,7 +566,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Selections' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -620,7 +620,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'Selection' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -632,7 +632,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Selection' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -679,7 +679,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'FragmentSpread' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -731,7 +731,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'InlineFragment' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -750,7 +750,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'InlineFragment' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -762,7 +762,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'InlineFragment' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -784,7 +784,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'InlineFragment' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -802,7 +802,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'InlineFragment' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -898,7 +898,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Field' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -945,7 +945,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'FieldName' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -961,7 +961,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'FieldName' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1005,7 +1005,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'Arguments' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -1022,7 +1022,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'Arguments' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1034,7 +1034,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Arguments' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1079,7 +1079,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'ArgumentList' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -1102,7 +1102,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ArgumentList' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1148,19 +1148,19 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'Argument' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
+					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'Argument' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1172,7 +1172,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Argument' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1230,7 +1230,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'FragmentDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -1250,7 +1250,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'FragmentDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -1262,7 +1262,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'FragmentDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -1274,7 +1274,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'FragmentDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -1286,7 +1286,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'FragmentDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1298,7 +1298,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'FragmentDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1344,7 +1344,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Directives' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1394,7 +1394,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'Directive' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1406,7 +1406,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Directive' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1455,7 +1455,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'VariableDefinitions' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -1467,7 +1467,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'VariableDefinitions' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1479,7 +1479,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'VariableDefinitions' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1524,7 +1524,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'VariableDefinitionList' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -1547,7 +1547,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'VariableDefinitionList' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1601,7 +1601,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'VariableDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -1613,7 +1613,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'VariableDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1625,7 +1625,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'VariableDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1667,7 +1667,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'Variable' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1679,7 +1679,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Variable' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1720,19 +1720,19 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'DefaultValue' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
+				["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","null_","stringValue","true_"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'DefaultValue' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1777,13 +1777,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ValueOrVariable' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_","dollar"]
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","null_","stringValue","true_","dollar"]
 		);
 
 	}
@@ -1796,7 +1796,8 @@ struct Parser {
 			 || this.lex.front.type == TokenType.false_
 			 || this.firstArray()
 			 || this.firstObjectType()
-			 || this.lex.front.type == TokenType.name;
+			 || this.lex.front.type == TokenType.name
+			 || this.lex.front.type == TokenType.null_;
 	}
 
 	Value parseValue() {
@@ -1867,16 +1868,23 @@ struct Parser {
 			return new Value(ValueEnum.E
 				, tok
 			);
+		} else if(this.lex.front.type == TokenType.null_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Value(ValueEnum.N
+				, tok
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Value' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["stringValue","intValue","floatValue","true_","false_","lbrack","lcurly","name"]
+			["stringValue","intValue","floatValue","true_","false_","lbrack","lcurly","name","null_"]
 		);
 
 	}
@@ -1930,7 +1938,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Type' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -1974,7 +1982,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'ListType' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -1986,7 +1994,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'ListType' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -1998,7 +2006,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ListType' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2043,13 +2051,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'Values' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
+					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
@@ -2059,13 +2067,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Values' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","null_","stringValue","true_"]
 		);
 
 	}
@@ -2108,7 +2116,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'Array' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -2120,19 +2128,19 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'Array' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
+				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'Array' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2168,8 +2176,8 @@ struct Parser {
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
 				subRules = ["V", "Vs", "Vsc"];
-				if(this.firstValue()) {
-					Value val = this.parseValue();
+				if(this.firstValueOrVariable()) {
+					ValueOrVariable val = this.parseValueOrVariable();
 					subRules = ["Vsc"];
 					if(this.lex.front.type == TokenType.comma) {
 						this.lex.popFront();
@@ -2185,7 +2193,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'ObjectValues' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -2210,19 +2218,19 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'ObjectValues' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
+					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'ObjectValues' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -2234,7 +2242,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ObjectValues' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2278,7 +2286,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'ObjectType' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -2290,7 +2298,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'ObjectType' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -2302,7 +2310,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ObjectType' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2317,7 +2325,8 @@ struct Parser {
 		return this.firstSchemaDefinition()
 			 || this.firstTypeDefinition()
 			 || this.firstTypeExtensionDefinition()
-			 || this.firstDirectiveDefinition();
+			 || this.firstDirectiveDefinition()
+			 || this.firstDescription();
 	}
 
 	TypeSystemDefinition parseTypeSystemDefinition() {
@@ -2358,16 +2367,59 @@ struct Parser {
 			return new TypeSystemDefinition(TypeSystemDefinitionEnum.D
 				, dd
 			);
+		} else if(this.firstDescription()) {
+			Description des = this.parseDescription();
+			subRules = ["DS"];
+			if(this.firstSchemaDefinition()) {
+				SchemaDefinition sch = this.parseSchemaDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DS
+					, des
+					, sch
+				);
+			} else if(this.firstTypeDefinition()) {
+				TypeDefinition td = this.parseTypeDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DT
+					, des
+					, td
+				);
+			} else if(this.firstTypeExtensionDefinition()) {
+				TypeExtensionDefinition ted = this.parseTypeExtensionDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DTE
+					, des
+					, ted
+				);
+			} else if(this.firstDirectiveDefinition()) {
+				DirectiveDefinition dd = this.parseDirectiveDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DD
+					, des
+					, dd
+				);
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'TypeSystemDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["schema","enum_ -> EnumTypeDefinition","input -> InputObjectTypeDefinition","interface_ -> InterfaceTypeDefinition","scalar -> ScalarTypeDefinition","type -> ObjectTypeDefinition","union_ -> UnionTypeDefinition","extend","directive"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'TypeSystemDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["schema","enum_ -> EnumTypeDefinition","input -> InputObjectTypeDefinition","interface_ -> InterfaceTypeDefinition","scalar -> ScalarTypeDefinition","type -> ObjectTypeDefinition","union_ -> UnionTypeDefinition","extend","directive"]
+			["schema","enum_ -> EnumTypeDefinition","input -> InputObjectTypeDefinition","interface_ -> InterfaceTypeDefinition","scalar -> ScalarTypeDefinition","type -> ObjectTypeDefinition","union_ -> UnionTypeDefinition","extend","directive","stringValue"]
 		);
 
 	}
@@ -2434,7 +2486,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'TypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2485,7 +2537,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'SchemaDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -2497,7 +2549,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'SchemaDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -2509,7 +2561,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'SchemaDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -2533,7 +2585,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'SchemaDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -2545,7 +2597,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'SchemaDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -2557,7 +2609,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'SchemaDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -2569,7 +2621,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'SchemaDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2614,7 +2666,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'OperationTypeDefinitions' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -2637,7 +2689,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'OperationTypeDefinitions' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2683,7 +2735,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'OperationTypeDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -2695,7 +2747,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'OperationTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -2707,7 +2759,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'OperationTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2757,7 +2809,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'ScalarTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -2769,7 +2821,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ScalarTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -2829,7 +2881,7 @@ struct Parser {
 								}
 								auto app = appender!string();
 								formattedWrite(app, 
-									"Found a '%s' while looking for", 
+									"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 									this.lex.front
 								);
 								throw new ParseException(app.data,
@@ -2841,19 +2893,19 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
 								__FILE__, __LINE__,
 								subRules,
-								["name -> FieldDefinition"]
+								["name -> FieldDefinition","stringValue -> FieldDefinition"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -2879,7 +2931,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -2891,19 +2943,19 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition"]
+							["name -> FieldDefinition","stringValue -> FieldDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -2932,7 +2984,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -2944,19 +2996,19 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition"]
+							["name -> FieldDefinition","stringValue -> FieldDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -2981,7 +3033,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -2993,19 +3045,19 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> FieldDefinition"]
+						["name -> FieldDefinition","stringValue -> FieldDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3017,7 +3069,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -3029,7 +3081,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ObjectTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3074,13 +3126,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'FieldDefinitions' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> FieldDefinition"]
+					["name -> FieldDefinition","stringValue -> FieldDefinition"]
 				);
 
 			} else if(this.firstFieldDefinitions()) {
@@ -3097,19 +3149,20 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'FieldDefinitions' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue -> Description"]
 		);
 
 	}
 
 	bool firstFieldDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.firstDescription();
 	}
 
 	FieldDefinition parseFieldDefinition() {
@@ -3157,7 +3210,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'FieldDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -3169,7 +3222,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'FieldDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3200,7 +3253,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'FieldDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3212,7 +3265,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'FieldDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -3221,16 +3274,130 @@ struct Parser {
 				["lparen","colon"]
 			);
 
+		} else if(this.firstDescription()) {
+			Description des = this.parseDescription();
+			subRules = ["DA", "DAD", "DD", "DT"];
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				subRules = ["DA", "DAD"];
+				if(this.firstArgumentsDefinition()) {
+					ArgumentsDefinition arg = this.parseArgumentsDefinition();
+					subRules = ["DA", "DAD"];
+					if(this.lex.front.type == TokenType.colon) {
+						this.lex.popFront();
+						subRules = ["DA", "DAD"];
+						if(this.firstType()) {
+							Type typ = this.parseType();
+							subRules = ["DAD"];
+							if(this.firstDirectives()) {
+								Directives dir = this.parseDirectives();
+
+								return new FieldDefinition(FieldDefinitionEnum.DAD
+									, des
+									, name
+									, arg
+									, typ
+									, dir
+								);
+							}
+							return new FieldDefinition(FieldDefinitionEnum.DA
+								, des
+								, name
+								, arg
+								, typ
+							);
+						}
+						auto app = appender!string();
+						formattedWrite(app, 
+							"In 'FieldDefinition' found a '%s' while looking for", 
+							this.lex.front
+						);
+						throw new ParseException(app.data,
+							__FILE__, __LINE__,
+							subRules,
+							["lbrack -> ListType","name"]
+						);
+
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'FieldDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["colon"]
+					);
+
+				} else if(this.lex.front.type == TokenType.colon) {
+					this.lex.popFront();
+					subRules = ["DD", "DT"];
+					if(this.firstType()) {
+						Type typ = this.parseType();
+						subRules = ["DD"];
+						if(this.firstDirectives()) {
+							Directives dir = this.parseDirectives();
+
+							return new FieldDefinition(FieldDefinitionEnum.DD
+								, des
+								, name
+								, typ
+								, dir
+							);
+						}
+						return new FieldDefinition(FieldDefinitionEnum.DT
+							, des
+							, name
+							, typ
+						);
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'FieldDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["lbrack -> ListType","name"]
+					);
+
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"In 'FieldDefinition' found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["lparen","colon"]
+				);
+
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'FieldDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'FieldDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue"]
 		);
 
 	}
@@ -3265,7 +3432,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'ImplementsInterfaces' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -3277,7 +3444,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ImplementsInterfaces' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3323,7 +3490,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'NamedTypes' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3346,7 +3513,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'NamedTypes' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3374,7 +3541,7 @@ struct Parser {
 
 	ArgumentsDefinition parseArgumentsDefinitionImpl() {
 		string[] subRules;
-		subRules = ["A"];
+		subRules = ["A", "DA"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
 			subRules = ["A"];
@@ -3389,7 +3556,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'ArgumentsDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3398,22 +3565,58 @@ struct Parser {
 					["rparen"]
 				);
 
+			} else if(this.firstDescription()) {
+				Description des = this.parseDescription();
+				subRules = ["DA"];
+				if(this.firstInputValueDefinitions()) {
+					this.parseInputValueDefinitions();
+					subRules = ["DA"];
+					if(this.lex.front.type == TokenType.rparen) {
+						this.lex.popFront();
+
+						return new ArgumentsDefinition(ArgumentsDefinitionEnum.DA
+							, des
+						);
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'ArgumentsDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["rparen"]
+					);
+
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"In 'ArgumentsDefinition' found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["name -> InputValueDefinition"]
+				);
+
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'ArgumentsDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name -> InputValueDefinition"]
+				["name -> InputValueDefinition","stringValue"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'ArgumentsDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3458,7 +3661,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'InputValueDefinitions' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3481,7 +3684,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'InputValueDefinitions' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3554,7 +3757,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'InputValueDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3566,7 +3769,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'InputValueDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -3578,7 +3781,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'InputValueDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3634,7 +3837,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -3646,19 +3849,19 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition"]
+							["name -> FieldDefinition","stringValue -> FieldDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -3683,7 +3886,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -3695,19 +3898,19 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> FieldDefinition"]
+						["name -> FieldDefinition","stringValue -> FieldDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3719,7 +3922,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -3731,7 +3934,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'InterfaceTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3784,7 +3987,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'UnionTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -3796,7 +3999,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'UnionTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -3818,7 +4021,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'UnionTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -3830,7 +4033,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'UnionTypeDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3842,7 +4045,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'UnionTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -3854,7 +4057,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'UnionTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3900,7 +4103,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'UnionMembers' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -3923,7 +4126,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'UnionMembers' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -3979,7 +4182,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'EnumTypeDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -3991,7 +4194,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'EnumTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4003,7 +4206,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'EnumTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -4028,7 +4231,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'EnumTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4040,7 +4243,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'EnumTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -4052,7 +4255,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'EnumTypeDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -4064,7 +4267,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'EnumTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -4076,7 +4279,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'EnumTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -4121,7 +4324,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'EnumValueDefinitions' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -4144,7 +4347,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'EnumValueDefinitions' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -4191,7 +4394,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'EnumValueDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -4247,7 +4450,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'InputTypeDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -4259,7 +4462,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'InputTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4271,7 +4474,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'InputTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -4296,7 +4499,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'InputTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4308,7 +4511,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'InputTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -4320,7 +4523,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'InputTypeDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -4332,7 +4535,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'InputTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -4344,7 +4547,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'InputTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -4385,7 +4588,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'TypeExtensionDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -4397,7 +4600,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'TypeExtensionDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -4453,7 +4656,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'DirectiveDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -4465,7 +4668,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'DirectiveDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4487,7 +4690,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'DirectiveDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4499,7 +4702,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'DirectiveDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -4511,7 +4714,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'DirectiveDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -4523,7 +4726,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'DirectiveDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -4535,7 +4738,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'DirectiveDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -4581,7 +4784,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'DirectiveLocations' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -4604,7 +4807,7 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'DirectiveLocations' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
@@ -4659,7 +4862,7 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Found a '%s' while looking for", 
+								"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 								this.lex.front
 							);
 							throw new ParseException(app.data,
@@ -4671,7 +4874,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4683,7 +4886,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -4707,7 +4910,7 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Found a '%s' while looking for", 
+							"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 							this.lex.front
 						);
 						throw new ParseException(app.data,
@@ -4719,7 +4922,7 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Found a '%s' while looking for", 
+						"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 						this.lex.front
 					);
 					throw new ParseException(app.data,
@@ -4731,7 +4934,7 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Found a '%s' while looking for", 
+					"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 					this.lex.front
 				);
 				throw new ParseException(app.data,
@@ -4743,7 +4946,7 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Found a '%s' while looking for", 
+				"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 				this.lex.front
 			);
 			throw new ParseException(app.data,
@@ -4755,13 +4958,52 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Found a '%s' while looking for", 
+			"In 'InputObjectTypeDefinition' found a '%s' while looking for", 
 			this.lex.front
 		);
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
 			["input"]
+		);
+
+	}
+
+	bool firstDescription() const pure @nogc @safe {
+		return this.lex.front.type == TokenType.stringValue;
+	}
+
+	Description parseDescription() {
+		try {
+			return this.parseDescriptionImpl();
+		} catch(ParseException e) {
+			throw new ParseException(
+				"While parsing a Description an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	Description parseDescriptionImpl() {
+		string[] subRules;
+		subRules = ["S"];
+		if(this.lex.front.type == TokenType.stringValue) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Description(DescriptionEnum.S
+				, tok
+			);
+		}
+		auto app = appender!string();
+		formattedWrite(app, 
+			"In 'Description' found a '%s' while looking for", 
+			this.lex.front
+		);
+		throw new ParseException(app.data,
+			__FILE__, __LINE__,
+			subRules,
+			["stringValue"]
 		);
 
 	}
